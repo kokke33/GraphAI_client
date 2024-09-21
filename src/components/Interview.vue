@@ -1,5 +1,8 @@
 <template>
   <div class="interview-container">
+    <!-- ログアウトボタン -->
+    <button @click="handleLogout" class="logout-button">ログアウト</button>
+    
     <!-- タブヘッダー -->
     <div class="tabs">
       <button
@@ -69,7 +72,7 @@
       <!-- 質問に対するAI回答タブ -->
       <div v-if="activeTab === 'answer'" class="interview">
         <header>
-          <h2>質問に対するAI回答</h2>
+          <h2>質問に対するAI回答 （30秒ほど待ちます）</h2>
         </header>
         <div class="interview-area">
           <div class="output" ref="outputArea2">
@@ -126,75 +129,50 @@ import Convert from 'ansi-to-html';
 export default {
   data() {
     return {
-      // タブの状態を管理
       activeTab: 'create', // 'create' または 'answer'
-
-      // 会話内容を保持する配列
       conversations1: [],
       conversations2: [],
-
-      // ソケット接続用の変数
       socket1: null,
       socket2: null,
-
-      // ユーザーの入力内容
       userInput1: '',
       userInput2: '',
-
-      // ANSIコードをHTMLに変換するためのインスタンス
       ansiConvert: new Convert(),
     };
   },
   mounted() {
-    // コンポーネントがマウントされたときにソケットを初期化
     this.initializeSocket(1);
     this.initializeSocket(2);
   },
   methods: {
-    // ソケットを初期化するメソッド
     initializeSocket(id) {
-      // 接続先URLを決定
-      const url =
-        id === 1
-          // 本番環境のURLに置き換えてください
-          ? 'https://1b120746-d01d-4c50-a1df-b14a935e62db-00-3sheu5l7kp029.sisko.replit.dev:3000/'
-          : 'https://ed9c723d-e4a9-4a46-8339-8c67361a2328-00-34esi9rijxbcr.sisko.replit.dev:3000/';
-
-      // ソケット接続を確立
+      const url = id === 1
+        ? 'https://server-kokke33.replit.app/'
+        : 'https://server-2-kokke33.replit.app/';
       const socket = io(url);
       this[`socket${id}`] = socket;
 
-      // 接続成功時の処理
       socket.on('connect', () => {
         this.addMessage(id, {
           type: 'system',
           content: 'サーバーに接続しました',
         });
-        console.log(`サーバー${id}に接続しました`);
         socket.emit('start_interview');
-        console.log(`サーバー${id}にstart_interviewイベントを送信しました`);
       });
 
-      // 切断時の処理
       socket.on('disconnect', () => {
         this.addMessage(id, {
           type: 'system',
           content: 'サーバーから切断されました',
         });
-        console.log(`サーバー${id}から切断されました`);
       });
 
-      // 接続エラー時の処理
       socket.on('connect_error', (error) => {
         console.error(`サーバー${id}への接続エラー:`, error);
       });
 
-      // サーバーからのメッセージ受信時の処理
       socket.on('interview_result', (message) => {
         this.addMessage(id, { type: 'system', content: message });
-        console.log(`サーバー${id}からのメッセージ:`, message);
 
-        // 応答を受け取った後にテキストエリアにフォーカスを設定
         this.$nextTick(() => {
           const textareaRef = `textarea${id}`;
           if (this.$refs[textareaRef]) {
@@ -203,21 +181,16 @@ export default {
         });
       });
     },
-    // メッセージを会話に追加するメソッド
     addMessage(id, msg) {
       const conversations = this[`conversations${id}`];
       const lastConversation = conversations[conversations.length - 1];
-      // 新しいタイプのメッセージの場合、新しい会話ユニットを作成
       if (!lastConversation || lastConversation.type !== msg.type) {
         conversations.push({ type: msg.type, messages: [msg.content] });
       } else {
-        // 同じタイプのメッセージの場合、既存のユニットに追加
         lastConversation.messages.push(msg.content);
       }
-      // 最新のメッセージまでスクロール
       this.scrollToBottom(id);
     },
-    // 出力エリアをスクロールするメソッド
     scrollToBottom(id) {
       this.$nextTick(() => {
         const outputArea = this.$refs[`outputArea${id}`];
@@ -226,44 +199,37 @@ export default {
         }
       });
     },
-    // メッセージを送信するメソッド
     sendMessage(id) {
       const userInput = this[`userInput${id}`];
       if (userInput.trim() === '') return;
-      // ユーザーのメッセージを会話に追加
       this.addMessage(id, { type: 'user', content: `You: ${userInput}` });
-      console.log(`サーバー${id}にメッセージを送信:`, userInput);
-      // サーバーにユーザー入力を送信
       this[`socket${id}`].emit('user_input', userInput.trim());
-      console.log(`メッセージが送信されました: ${userInput}`);
-      // 入力フィールドをクリア
       this[`userInput${id}`] = '';
     },
-    // メッセージからANSIエスケープコードを除去するメソッド
     sanitizeMessage(message) {
-      const regex = /\x1B\[[0-?]*[ -/]*[@-~]/g; // ANSIエスケープコードの正規表現
+      const regex = /\x1B\[[0-?]*[ -/]*[@-~]/g;
       return message.replace(regex, '').trim();
     },
-    // ANSIコードをHTMLに変換するメソッド
     renderAnsiToHtml(message) {
       const sanitizedMessage = this.sanitizeMessage(message);
       const htmlMessage = this.ansiConvert.toHtml(sanitizedMessage);
       return marked(htmlMessage);
     },
-    // マークダウンをHTMLに変換するメソッド
     renderMarkdown(message) {
       return marked(message);
     },
-    // メッセージを適切な形式でレンダリングするメソッド
     renderMessage(message, type) {
       if (type === 'system') {
         return this.renderMarkdown(message);
       }
       return this.renderAnsiToHtml(message);
     },
+    // ログアウト処理
+    handleLogout() {
+      this.$router.push('/');
+    }
   },
   beforeDestroy() {
-    // コンポーネントが破棄される前にソケットを閉じる
     if (this.socket1) {
       this.socket1.close();
     }
@@ -275,6 +241,22 @@ export default {
 </script>
 
 <style scoped>
+/* 追加するログアウトボタンのスタイル */
+.logout-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 10px 20px;
+  background-color: #ff5c5c;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.logout-button:hover {
+  background-color: #e04e4e;
+}
+
 /* 全体コンテナのスタイリング */
 .interview-container {
   display: flex;
@@ -282,14 +264,14 @@ export default {
   justify-content: flex-start;
   max-width: 1200px;
   width: 100%;
-  height: 100vh; /* ウィンドウの高さ */
+  height: 95vh;
   margin: 0 auto;
   padding: 10px;
   box-sizing: border-box;
   background-color: #f5f7fa;
 }
 
-/* <p>タグにマージンを適用 */
+/* 深い p タグにマージンを適用 */
 :deep(p) {
   margin-top: 2px;
   margin-bottom: 2px;
@@ -359,7 +341,7 @@ export default {
   flex-direction: column;
   flex-grow: 1;
   padding: 10px;
-  height: calc(100vh - 120px); /* ヘッダーとタブの高さを減算 */
+  height: calc(95vh - 130px);
   box-sizing: border-box;
 }
 
@@ -393,20 +375,18 @@ export default {
 .message {
   padding: 10px 15px;
   border-radius: 20px;
-  max-width: 85%; /* 75% から 85% に増加 */
+  max-width: 85%;
   word-wrap: break-word;
   position: relative;
   margin-bottom: 5px;
 }
 
-/* サーバーメッセージ（左寄り） */
 .message.system {
   background-color: #e0f7fa;
   color: #0066cc;
   text-align: left;
 }
 
-/* ユーザーメッセージ（右寄り） */
 .message.user {
   background-color: #dcf8c6;
   color: #006600;
@@ -420,30 +400,27 @@ export default {
   gap: 10px;
 }
 
-/* メッセージフォームのスタイリング */
 .message-form {
   display: flex;
   width: 100%;
 }
 
-/* テキストエリアのスタイリング */
 .message-form textarea {
   flex-grow: 1;
   padding: 12px 15px;
   font-size: 16px;
   border: 1px solid #ccc;
   border-radius: 25px;
-  resize: none; /* ユーザーが手動でサイズを変更できないようにする */
+  resize: none;
   outline: none;
   transition: border-color 0.3s;
 }
 
 .message-form textarea:focus {
   border-color: #0066cc;
-  box-shadow: 0 0 5px rgba(0, 102, 204, 0.5); /* フォーカス時の視覚効果 */
+  box-shadow: 0 0 5px rgba(0, 102, 204, 0.5);
 }
 
-/* 送信ボタンのスタイリング */
 .send-button {
   display: flex;
   align-items: center;
@@ -456,35 +433,32 @@ export default {
   border-radius: 25px;
   cursor: pointer;
   transition: background-color 0.3s;
-  width: 50px; /* ボタンの幅を固定 */
-  height: 50px; /* ボタンの高さを固定 */
+  width: 50px;
+  height: 50px;
 }
 
 .send-button:hover {
   background-color: #005bb5;
 }
 
-/* 送信アイコンのスタイリング */
 .icon-send {
   width: 20px;
   height: 20px;
 }
 
-/* レスポンシブデザイン */
 @media (max-width: 768px) {
   .interview-container {
     padding: 10px;
   }
 
   .interview-area {
-    height: calc(100vh - 160px); /* タブとヘッダーの高さを調整 */
+    height: calc(100vh - 160px);
   }
 
   .message {
-    max-width: 90%; /* モバイル画面ではさらに幅を広げる */
+    max-width: 90%;
   }
 
-  /* メッセージのテキスト揃えを維持 */
   .message.system {
     text-align: left;
   }
@@ -500,8 +474,8 @@ export default {
   .send-button {
     font-size: 14px;
     padding: 8px;
-    width: 40px; /* ボタンの幅をさらに縮小 */
-    height: 40px; /* ボタンの高さをさらに縮小 */
+    width: 40px;
+    height: 40px;
   }
 
   .icon-send {
