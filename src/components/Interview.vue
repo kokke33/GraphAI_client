@@ -46,6 +46,7 @@
             <!-- メッセージ送信用フォーム -->
             <form @submit.prevent="sendMessage(1)" class="message-form">
               <textarea
+                ref="textarea1"
                 v-model="userInput1"
                 placeholder="メッセージを入力..."
                 rows="3"
@@ -93,6 +94,7 @@
             <!-- メッセージ送信用フォーム -->
             <form @submit.prevent="sendMessage(2)" class="message-form">
               <textarea
+                ref="textarea2"
                 v-model="userInput2"
                 placeholder="メッセージを入力..."
                 rows="3"
@@ -116,7 +118,7 @@
 </template>
 
 <script>
-// 既存のスクリプトは変更不要
+// 必要なライブラリをインポート
 import io from 'socket.io-client';
 import { marked } from 'marked';
 import Convert from 'ansi-to-html';
@@ -154,10 +156,9 @@ export default {
       // 接続先URLを決定
       const url =
         id === 1
-          ? 'https://e155e5bf-4406-40cd-9658-914c7fbd3a0a-00-2wgxc7b0ud0op.pike.replit.dev:3000/'
-          : 'https://386417ec-0a11-4913-a099-a1bba467cebf-00-9d23simzanl3.pike.replit.dev:3000/';
-        //↓NewServerテスト中
-        // : 'https://8d831d4d-f18c-47c3-9197-a02dc2c5f1ba-00-293ot107lrahr.sisko.replit.dev:3000/';
+          // 本番環境のURLに置き換えてください
+          ? 'https://1b120746-d01d-4c50-a1df-b14a935e62db-00-3sheu5l7kp029.sisko.replit.dev:3000/'
+          : 'https://ed9c723d-e4a9-4a46-8339-8c67361a2328-00-34esi9rijxbcr.sisko.replit.dev:3000/';
 
       // ソケット接続を確立
       const socket = io(url);
@@ -192,6 +193,14 @@ export default {
       socket.on('interview_result', (message) => {
         this.addMessage(id, { type: 'system', content: message });
         console.log(`サーバー${id}からのメッセージ:`, message);
+
+        // 応答を受け取った後にテキストエリアにフォーカスを設定
+        this.$nextTick(() => {
+          const textareaRef = `textarea${id}`;
+          if (this.$refs[textareaRef]) {
+            this.$refs[textareaRef].focus();
+          }
+        });
       });
     },
     // メッセージを会話に追加するメソッド
@@ -280,11 +289,12 @@ export default {
   background-color: #f5f7fa;
 }
 
-::v-deep p {
+/* <p>タグにマージンを適用 */
+:deep(p) {
   margin-top: 2px;
   margin-bottom: 2px;
 }
-  
+
 /* タブヘッダーのスタイリング */
 .tabs {
   display: flex;
@@ -430,6 +440,7 @@ export default {
 
 .message-form textarea:focus {
   border-color: #0066cc;
+  box-shadow: 0 0 5px rgba(0, 102, 204, 0.5); /* フォーカス時の視覚効果 */
 }
 
 /* 送信ボタンのスタイリング */
