@@ -1,63 +1,114 @@
 <template>
   <div class="interview-container">
-    <!-- 2つのインタビューセクションを並べて表示 -->
-    <div class="interview">
-      <h1>質問文作成</h1>
-      <div class="interview-area">
-        <div class="output" ref="outputArea1">
-          <!-- conversations1配列の内容を表示 -->
-          <div
-            v-for="(conversation, index) in conversations1"
-            :key="index"
-            class="conversation-unit"
-          >
-            <!-- 各メッセージを表示 -->
+    <!-- タブヘッダー -->
+    <div class="tabs">
+      <button
+        :class="['tab', activeTab === 'create' ? 'active' : '']"
+        @click="activeTab = 'create'"
+      >
+        質問文作成
+      </button>
+      <button
+        :class="['tab', activeTab === 'answer' ? 'active' : '']"
+        @click="activeTab = 'answer'"
+      >
+        質問に対するAI回答
+      </button>
+    </div>
+
+    <!-- タブコンテンツ -->
+    <div class="tab-content">
+      <!-- 質問文作成タブ -->
+      <div v-if="activeTab === 'create'" class="interview">
+        <header>
+          <h2>質問文作成</h2>
+        </header>
+        <div class="interview-area">
+          <div class="output" ref="outputArea1">
+            <!-- conversations1配列の内容を表示 -->
             <div
-              v-for="(message, msgIndex) in conversation.messages"
-              :key="msgIndex"
-              :class="conversation.type"
+              v-for="(conversation, index) in conversations1"
+              :key="index"
+              :class="['conversation-unit', conversation.type]"
             >
-              <!-- メッセージをHTMLとしてレンダリング -->
-              <div v-html="renderMessage(message, conversation.type)"></div>
+              <!-- 各メッセージを表示 -->
+              <div
+                v-for="(message, msgIndex) in conversation.messages"
+                :key="msgIndex"
+                :class="['message', conversation.type]"
+              >
+                <!-- メッセージをHTMLとしてレンダリング -->
+                <div v-html="renderMessage(message, conversation.type)"></div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="input-area">
-          <!-- メッセージ送信用フォーム -->
-          <form @submit.prevent="sendMessage(1)">
-            <input v-model="userInput1" placeholder="Type your message..." />
-            <button type="submit">Send</button>
-          </form>
+          <div class="input-area">
+            <!-- メッセージ送信用フォーム -->
+            <form @submit.prevent="sendMessage(1)" class="message-form">
+              <textarea
+                v-model="userInput1"
+                placeholder="メッセージを入力..."
+                rows="3"
+              ></textarea>
+              <button type="submit" class="send-button" aria-label="送信">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="icon-send"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M2.94 5.94a1 1 0 011.414 0L10 11.086l5.656-5.146a1 1 0 111.414 1.414l-6 5.5a1 1 0 01-1.414 0l-6-5.5a1 1 0 010-1.414z" />
+                </svg>
+              </button>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="interview">
-      <h1>質問に対するAI回答</h1>
-      <div class="interview-area">
-        <div class="output" ref="outputArea2">
-          <!-- conversations2配列の内容を表示 -->
-          <div
-            v-for="(conversation, index) in conversations2"
-            :key="index"
-            class="conversation-unit"
-          >
-            <!-- 各メッセージを表示 -->
+
+      <!-- 質問に対するAI回答タブ -->
+      <div v-if="activeTab === 'answer'" class="interview">
+        <header>
+          <h2>質問に対するAI回答</h2>
+        </header>
+        <div class="interview-area">
+          <div class="output" ref="outputArea2">
+            <!-- conversations2配列の内容を表示 -->
             <div
-              v-for="(message, msgIndex) in conversation.messages"
-              :key="msgIndex"
-              :class="conversation.type"
+              v-for="(conversation, index) in conversations2"
+              :key="index"
+              :class="['conversation-unit', conversation.type]"
             >
-              <!-- メッセージをHTMLとしてレンダリング -->
-              <div v-html="renderMessage(message, conversation.type)"></div>
+              <!-- 各メッセージを表示 -->
+              <div
+                v-for="(message, msgIndex) in conversation.messages"
+                :key="msgIndex"
+                :class="['message', conversation.type]"
+              >
+                <!-- メッセージをHTMLとしてレンダリング -->
+                <div v-html="renderMessage(message, conversation.type)"></div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="input-area">
-          <!-- メッセージ送信用フォーム -->
-          <form @submit.prevent="sendMessage(2)">
-            <input v-model="userInput2" placeholder="Type your message..." />
-            <button type="submit">Send</button>
-          </form>
+          <div class="input-area">
+            <!-- メッセージ送信用フォーム -->
+            <form @submit.prevent="sendMessage(2)" class="message-form">
+              <textarea
+                v-model="userInput2"
+                placeholder="メッセージを入力..."
+                rows="3"
+              ></textarea>
+              <button type="submit" class="send-button" aria-label="送信">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="icon-send"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path d="M2.94 5.94a1 1 0 011.414 0L10 11.086l5.656-5.146a1 1 0 111.414 1.414l-6 5.5a1 1 0 01-1.414 0l-6-5.5a1 1 0 010-1.414z" />
+                </svg>
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
@@ -65,6 +116,7 @@
 </template>
 
 <script>
+// 既存のスクリプトは変更不要
 import io from 'socket.io-client';
 import { marked } from 'marked';
 import Convert from 'ansi-to-html';
@@ -72,15 +124,21 @@ import Convert from 'ansi-to-html';
 export default {
   data() {
     return {
+      // タブの状態を管理
+      activeTab: 'create', // 'create' または 'answer'
+
       // 会話内容を保持する配列
       conversations1: [],
       conversations2: [],
+
       // ソケット接続用の変数
       socket1: null,
       socket2: null,
+
       // ユーザーの入力内容
       userInput1: '',
       userInput2: '',
+
       // ANSIコードをHTMLに変換するためのインスタンス
       ansiConvert: new Convert(),
     };
@@ -96,8 +154,10 @@ export default {
       // 接続先URLを決定
       const url =
         id === 1
-        ? 'https://e155e5bf-4406-40cd-9658-914c7fbd3a0a-00-2wgxc7b0ud0op.pike.replit.dev:3000/'
-        : 'https://386417ec-0a11-4913-a099-a1bba467cebf-00-9d23simzanl3.pike.replit.dev:3000/';
+          ? 'https://e155e5bf-4406-40cd-9658-914c7fbd3a0a-00-2wgxc7b0ud0op.pike.replit.dev:3000/'
+          : 'https://386417ec-0a11-4913-a099-a1bba467cebf-00-9d23simzanl3.pike.replit.dev:3000/';
+        //↓NewServerテスト中
+        // : 'https://8d831d4d-f18c-47c3-9197-a02dc2c5f1ba-00-293ot107lrahr.sisko.replit.dev:3000/';
 
       // ソケット接続を確立
       const socket = io(url);
@@ -206,78 +266,245 @@ export default {
 </script>
 
 <style scoped>
-/* インタビュー全体のコンテナ */
+/* 全体コンテナのスタイリング */
 .interview-container {
   display: flex;
-  justify-content: space-between;
-  max-width: 2400px;
-  height: 90vh; /* ウィンドウの高さの90% */
+  flex-direction: column;
+  justify-content: flex-start;
+  max-width: 1200px;
+  width: 100%;
+  height: 100vh; /* ウィンドウの高さ */
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px;
+  box-sizing: border-box;
+  background-color: #f5f7fa;
 }
 
-/* 各インタビューセクション */
-.interview {
-  width: 48%;
-  max-width: 1200px;
+::v-deep p {
+  margin-top: 2px;
+  margin-bottom: 2px;
+}
+  
+/* タブヘッダーのスタイリング */
+.tabs {
+  display: flex;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 20px;
+}
+
+.tab {
+  flex: 1;
+  padding: 15px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 1.2em;
+  cursor: pointer;
+  transition: border-bottom 0.3s, background-color 0.3s;
+}
+
+.tab:hover {
+  background-color: #f0f4f8;
+}
+
+.tab.active {
+  border-bottom: 2px solid #0066cc;
+  font-weight: bold;
+  color: #0066cc;
+}
+
+/* タブコンテンツのスタイリング */
+.tab-content {
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
 }
 
-h1 {
+/* 各インタビューセクションのスタイリング */
+.interview {
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* ヘッダーのスタイリング */
+.interview header {
+  background-color: #0066cc;
+  padding: 15px 20px;
+  color: white;
   text-align: center;
 }
 
-/* インタビューエリアのスタイル */
+.interview header h2 {
+  margin: 0;
+  font-size: 1.5em;
+}
+
+/* インタビューエリアのスタイリング */
 .interview-area {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  border: 1px solid #ccc;
-  border-radius: 5px;
   padding: 10px;
-  margin-left: 0;
-  height: calc(100vh - 100px); /* ウィンドウの高さから100pxを引いた高さ */
+  height: calc(100vh - 120px); /* ヘッダーとタブの高さを減算 */
+  box-sizing: border-box;
 }
 
-/* 出力エリアのスタイル */
+/* メッセージ出力エリアのスタイリング */
 .output {
   flex-grow: 1;
   overflow-y: auto;
-  margin-bottom: 10px;
-  border: 1px solid #eee;
-  padding: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
 }
 
-/* 入力エリアのスタイル */
-.input-area {
+/* 各メッセージユニットのスタイリング */
+.conversation-unit {
   display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
 }
 
-input {
-  flex-grow: 1;
-  padding: 10px;
-  font-size: 16px;
+.conversation-unit.system {
+  align-items: flex-start;
 }
 
-button {
-  padding: 10px;
-  font-size: 16px;
+.conversation-unit.user {
+  align-items: flex-end;
 }
 
-/* システムメッセージのスタイル */
-.system {
+/* メッセージのスタイリング */
+.message {
+  padding: 10px 15px;
+  border-radius: 20px;
+  max-width: 85%; /* 75% から 85% に増加 */
+  word-wrap: break-word;
+  position: relative;
+  margin-bottom: 5px;
+}
+
+/* サーバーメッセージ（左寄り） */
+.message.system {
+  background-color: #e0f7fa;
   color: #0066cc;
+  text-align: left;
 }
 
-/* ユーザーメッセージのスタイル */
-.user {
+/* ユーザーメッセージ（右寄り） */
+.message.user {
+  background-color: #dcf8c6;
   color: #006600;
   text-align: right;
 }
 
-/* 会話ユニットのマージン */
-.conversation-unit {
-  margin-bottom: 10px;
+/* 入力エリアのスタイリング */
+.input-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* メッセージフォームのスタイリング */
+.message-form {
+  display: flex;
+  width: 100%;
+}
+
+/* テキストエリアのスタイリング */
+.message-form textarea {
+  flex-grow: 1;
+  padding: 12px 15px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 25px;
+  resize: none; /* ユーザーが手動でサイズを変更できないようにする */
+  outline: none;
+  transition: border-color 0.3s;
+}
+
+.message-form textarea:focus {
+  border-color: #0066cc;
+}
+
+/* 送信ボタンのスタイリング */
+.send-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  font-size: 16px;
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: 50px; /* ボタンの幅を固定 */
+  height: 50px; /* ボタンの高さを固定 */
+}
+
+.send-button:hover {
+  background-color: #005bb5;
+}
+
+/* 送信アイコンのスタイリング */
+.icon-send {
+  width: 20px;
+  height: 20px;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .interview-container {
+    padding: 10px;
+  }
+
+  .interview-area {
+    height: calc(100vh - 160px); /* タブとヘッダーの高さを調整 */
+  }
+
+  .message {
+    max-width: 90%; /* モバイル画面ではさらに幅を広げる */
+  }
+
+  /* メッセージのテキスト揃えを維持 */
+  .message.system {
+    text-align: left;
+  }
+
+  .message.user {
+    text-align: right;
+  }
+
+  .message-form textarea {
+    font-size: 14px;
+  }
+
+  .send-button {
+    font-size: 14px;
+    padding: 8px;
+    width: 40px; /* ボタンの幅をさらに縮小 */
+    height: 40px; /* ボタンの高さをさらに縮小 */
+  }
+
+  .icon-send {
+    width: 16px;
+    height: 16px;
+  }
+
+  .interview header h2 {
+    font-size: 1.2em;
+  }
+
+  .tab {
+    font-size: 1em;
+    padding: 10px 15px;
+  }
 }
 </style>
