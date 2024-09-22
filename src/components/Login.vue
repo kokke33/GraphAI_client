@@ -39,7 +39,7 @@ export default {
       error: '',
       // サンプルユーザーのリスト（画面表示しません）
       sampleUsers: [
-        { username: 'admin', password: 'password' },
+        { username: 'tss', password: 'tsstss' },
         { username: 'user1', password: 'password1' },
         { username: 'user2', password: 'password2' },
         { username: 'user3', password: 'password3' },
@@ -72,7 +72,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
+  min-height: 98vh;
   background-color: #f2f2f2;
   padding: 20px;
   box-sizing: border-box;

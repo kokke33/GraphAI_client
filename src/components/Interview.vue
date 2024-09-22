@@ -1,8 +1,11 @@
 <template>
   <div class="interview-container">
-    <!-- ログアウトボタン -->
-    <button @click="handleLogout" class="logout-button">ログアウト</button>
-    
+    <!-- ログアウトボタンと使い方ボタン -->
+    <div class="header-buttons">
+      <button @click="handleLogout" class="logout-button">ログアウト</button>
+      <button @click="openReadme" class="how-to-use-button">使い方</button>
+    </div>
+
     <!-- タブヘッダー -->
     <div class="tabs">
       <button
@@ -22,7 +25,7 @@
     <!-- タブコンテンツ -->
     <div class="tab-content">
       <!-- 質問文作成タブ -->
-      <div v-if="activeTab === 'create'" class="interview">
+      <div v-show="activeTab === 'create'" class="interview">
         <header>
           <h2>質問文作成</h2>
         </header>
@@ -43,6 +46,10 @@
                 <!-- メッセージをHTMLとしてレンダリング -->
                 <div v-html="renderMessage(message, conversation.type)"></div>
               </div>
+            </div>
+            <!-- ローディングアニメーションの追加 -->
+            <div v-show="isLoading1" class="loading-spinner">
+              <div class="spinner"></div>
             </div>
           </div>
           <div class="input-area">
@@ -70,7 +77,7 @@
       </div>
 
       <!-- 質問に対するAI回答タブ -->
-      <div v-if="activeTab === 'answer'" class="interview">
+      <div v-show="activeTab === 'answer'" class="interview">
         <header>
           <h2>質問に対するAI回答 （30秒ほど待ちます）</h2>
         </header>
@@ -91,6 +98,10 @@
                 <!-- メッセージをHTMLとしてレンダリング -->
                 <div v-html="renderMessage(message, conversation.type)"></div>
               </div>
+            </div>
+            <!-- ローディングアニメーションの追加 -->
+            <div v-show="isLoading2" class="loading-spinner">
+              <div class="spinner"></div>
             </div>
           </div>
           <div class="input-area">
@@ -137,6 +148,9 @@ export default {
       userInput1: '',
       userInput2: '',
       ansiConvert: new Convert(),
+      isLoading1: false,
+      isLoading2: false,
+      selectedLanguage: 'ja'  // 追加: 言語選択のデフォルト値
     };
   },
   mounted() {
@@ -172,6 +186,13 @@ export default {
 
       socket.on('interview_result', (message) => {
         this.addMessage(id, { type: 'system', content: message });
+        
+        // ローディングを終了
+        if (id === 1) {
+          this.isLoading1 = false;
+        } else if (id === 2) {
+          this.isLoading2 = false;
+        }
 
         this.$nextTick(() => {
           const textareaRef = `textarea${id}`;
@@ -205,6 +226,13 @@ export default {
       this.addMessage(id, { type: 'user', content: `You: ${userInput}` });
       this[`socket${id}`].emit('user_input', userInput.trim());
       this[`userInput${id}`] = '';
+      
+      // ローディングを開始
+      if (id === 1) {
+        this.isLoading1 = true;
+      } else if (id === 2) {
+        this.isLoading2 = true;
+      }
     },
     sanitizeMessage(message) {
       const regex = /\x1B\[[0-?]*[ -/]*[@-~]/g;
@@ -227,6 +255,10 @@ export default {
     // ログアウト処理
     handleLogout() {
       this.$router.push('/');
+    },
+    // 使い方ページへ遷移
+    openReadme() {
+      window.open('https://github.com/kokke33/GraphAI/blob/main/README2.md', '_blank');
     }
   },
   beforeDestroy() {
@@ -241,11 +273,30 @@ export default {
 </script>
 
 <style scoped>
-/* 追加するログアウトボタンのスタイル */
+/* ヘッダーボタンコンテナのスタイル */
+.header-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  position: relative; /* ログアウトボタンの位置を維持 */
+}
+
+/* 使い方ボタンのスタイル */
+.how-to-use-button {
+  padding: 10px 20px;
+  background-color: #4CAF50; /* 緑色 */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.how-to-use-button:hover {
+  background-color: #45a049;
+}
+
+/* ログアウトボタンのスタイル（既存） */
 .logout-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
   padding: 10px 20px;
   background-color: #ff5c5c;
   color: white;
@@ -253,6 +304,7 @@ export default {
   border-radius: 5px;
   cursor: pointer;
 }
+
 .logout-button:hover {
   background-color: #e04e4e;
 }
@@ -264,7 +316,7 @@ export default {
   justify-content: flex-start;
   max-width: 1200px;
   width: 100%;
-  height: 95vh;
+  height: 90vh;   /* 高さ */
   margin: 0 auto;
   padding: 10px;
   box-sizing: border-box;
@@ -341,7 +393,7 @@ export default {
   flex-direction: column;
   flex-grow: 1;
   padding: 10px;
-  height: calc(95vh - 130px);
+  height: calc(90vh - 135px);
   box-sizing: border-box;
 }
 
@@ -398,15 +450,18 @@ export default {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 10px; /* ボタンとの隙間 */
 }
 
 .message-form {
   display: flex;
+  justify-content: center; /* フォーム内のアイテムを中央に配置 */
+  align-items: center;
   width: 100%;
 }
 
 .message-form textarea {
-  flex-grow: 1;
+  width: calc(100% - 70px); /* 幅を調整 */
   padding: 12px 15px;
   font-size: 16px;
   border: 1px solid #ccc;
@@ -414,6 +469,7 @@ export default {
   resize: none;
   outline: none;
   transition: border-color 0.3s;
+  margin-right: 10px; /* テキストエリアとボタンの間にマージンを追加 */
 }
 
 .message-form textarea:focus {
@@ -491,5 +547,39 @@ export default {
     font-size: 1em;
     padding: 10px 15px;
   }
+}
+
+/* ローディングスピナーのスタイル */
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+.spinner {
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border-left-color: #0066cc;
+  animation: spin 1s linear infinite;
+}
+
+/* スピナーのアニメーション */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 言語選択プルダウンのスタイル */
+.language-select {
+  margin-top: 10px; /* 送信ボタンとプルダウンの間に余白を追加 */
+  padding: 5px;
+  font-size: 16px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  outline: none;
 }
 </style>
