@@ -196,12 +196,6 @@ export default {
      * @param {Object} msg - { type: 'user' | 'system', content: 'メッセージ内容' }
      */
     addMessage(id, msg) {
-      // msg.content が未定義の場合にデフォルト値を設定
-      if (typeof msg.content !== 'string') {
-        console.warn('addMessage called with non-string content:', msg);
-        msg.content = '';
-      }
-
       const conversations = this[`conversations${id}`];
       const lastConversation = conversations[conversations.length - 1];
       if (!lastConversation || lastConversation.type !== msg.type) {
@@ -236,10 +230,6 @@ export default {
       this[`isLoading${id}`] = true;
     },
     sanitizeMessage(message) {
-      if (typeof message !== 'string') {
-        console.warn('sanitizeMessage called with non-string message:', message);
-        return '';
-      }
       return message.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '').trim();
     },
     renderAnsiToHtml(message) {
@@ -276,15 +266,7 @@ export default {
      */
     loadHistory() {
       const history = JSON.parse(localStorage.getItem('chatHistory')) || [];
-      // 履歴データのバリデーション
-      this.historyData = history.map(entry => {
-        return {
-          timestamp: entry.timestamp || new Date(),
-          type: entry.type || 'system',
-          content: typeof entry.content === 'string' ? entry.content : '',
-          tab: entry.tab || 'create'
-        };
-      });
+      this.historyData = history;
     },
     /**
      * チャット履歴を保存するメソッド（システムメッセージを除外）
@@ -647,6 +629,7 @@ export default {
 /* 「使い方」モーダル専用のスタイル */
 .how-to-use-content {
   margin-top: 20px;
+  text-align: left;
 }
 
 /* 履歴削除ボタンのスタイル */
