@@ -1,3 +1,4 @@
+<!-- Login.vue -->
 <template>
   <div class="login-page">
     <div class="login-container">
@@ -56,6 +57,8 @@ export default {
       );
       if (user) {
         // 認証成功時の処理
+        // ログインID（ユーザー名）をローカルストレージに保存
+        localStorage.setItem('loginID', user.username);
         this.$router.push('/interview');
       } else {
         // 認証失敗時の処理

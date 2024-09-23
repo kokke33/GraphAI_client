@@ -1,3 +1,4 @@
+<!-- Interview.vue -->
 <template>
   <div class="interview-container">
     <!-- ヘッダーボタン -->
@@ -106,10 +107,10 @@
         <div class="how-to-use-content">
           <p>このアプリの使い方について説明します。</p>
           <ul>
-            <li><strong>質問文作成タブ:</strong> AIに質問を作成してもらうためのタブです。テキストボックスに質問を入力し、送信ボタンをクリックしてください。</li>
-            <li><strong>AI回答タブ:</strong> 作成した質問に対するAIの回答を表示します。質問を入力し、送信ボタンをクリックすると、AIからの回答が表示されます。</li>
-            <li><strong>履歴ボタン:</strong> 過去のチャット履歴を確認できます。モーダルウィンドウが表示され、以前のメッセージを閲覧できます。</li>
-            <li><strong>ログアウトボタン:</strong> アプリからログアウトします。</li>
+            <li><strong>質問文作成タブ:</strong><br> AIに質問を作成してもらうためのタブです。テキストボックスに質問を入力し、送信ボタンをクリックしてください。大雑把な質問から開始して、AIとの会話を通してより詳細で具体的な質問文を作成していきます。<br><br></li>
+            <li><strong>AI回答タブ:</strong><br> 作成した質問に対するAIの回答を表示します。質問を入力し、送信ボタンをクリックすると、AIからの回答が表示されます。<br><br></li>
+            <li><strong>履歴ボタン:</strong><br> 過去のチャット履歴を確認できます。モーダルウィンドウが表示され、以前のメッセージを閲覧できます。<br><br></li>
+            <li><strong>ログアウトボタン:</strong><br> アプリからログアウトします。<br><br></li>
           </ul>
           <p>その他の機能については、開発者にお問い合わせください。</p>
         </div>
@@ -143,6 +144,7 @@ export default {
       historyFilter: 'all', // 履歴フィルタリング用
       isDisconnected1: false, // ソケット1の接続状態
       isDisconnected2: false, // ソケット2の接続状態
+      loginID: '', // 追加: ログインID
     };
   },
   computed: {
@@ -158,6 +160,13 @@ export default {
     },
   },
   mounted() {
+    // ログインIDをローカルストレージから取得
+    this.loginID = localStorage.getItem('loginID') || '';
+    if (!this.loginID) {
+      // ログインしていない場合、ログインページにリダイレクト
+      this.$router.push('/login');
+      return;
+    }
     this.initializeSocket(1);
     this.initializeSocket(2);
     this.loadHistory();
@@ -169,7 +178,11 @@ export default {
      */
     initializeSocket(id) {
       const url = id === 1 ? SERVER_URL_1 : SERVER_URL_2;
-      const socket = io(url);
+      const socket = io(url, {
+        query: {
+          loginID: this.loginID, // ログインIDをクエリパラメータとして送信
+        },
+      });
       this[`socket${id}`] = socket;
 
       socket.on('connect', () => {
@@ -209,7 +222,11 @@ export default {
 
         // ソケットを再初期化
         const url = id === 1 ? SERVER_URL_1 : SERVER_URL_2;
-        const socket = io(url);
+        const socket = io(url, {
+          query: {
+            loginID: this.loginID, // ログインIDを再送信
+          },
+        });
         this[`socket${id}`] = socket;
 
         // イベントリスナーを再設定
@@ -362,8 +379,10 @@ export default {
       this.isLoading2 = false;
       // 履歴モーダルを閉じる
       this.closeHistory();
+      // ログインIDを削除
+      localStorage.removeItem('loginID');
       // ルーターでログアウト
-      this.$router.push('/');
+      this.$router.push('/login');
     },
 
     /**
