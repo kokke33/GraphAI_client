@@ -9,14 +9,14 @@
 
     <!-- タブ -->
     <div class="tabs">
-      <button :class="['tab', activeTab==='create' ? 'active' : '']" @click="activeTab='create'">質問文作成</button>
-      <button :class="['tab', activeTab==='answer' ? 'active' : '']" @click="activeTab='answer'">質問に対するAI回答</button>
+      <button :class="['tab', activeTab === 'create' ? 'active' : '']" @click="activeTab = 'create'">質問文作成</button>
+      <button :class="['tab', activeTab === 'answer' ? 'active' : '']" @click="activeTab = 'answer'">質問に対するAI回答</button>
     </div>
 
     <!-- タブコンテンツ -->
     <div class="tab-content">
       <!-- 質問文作成タブ -->
-      <div v-show="activeTab==='create'" class="interview">
+      <div v-show="activeTab === 'create'" class="interview">
         <header><h2>質問文作成</h2></header>
         <div class="interview-area">
           <div class="output" ref="outputArea1">
@@ -41,7 +41,7 @@
       </div>
 
       <!-- AI回答タブ -->
-      <div v-show="activeTab==='answer'" class="interview">
+      <div v-show="activeTab === 'answer'" class="interview">
         <header><h2>質問に対するAI回答 （30秒ほど待ちます）</h2></header>
         <div class="interview-area">
           <div class="output" ref="outputArea2">
@@ -137,29 +137,25 @@ export default {
       ansiConvert: new Convert(),
       isLoading1: false,
       isLoading2: false,
-      selectedLanguage: 'ja',
       showHistory: false,
       historyData: [],
       showHowToUse: false,
       historyFilter: 'all', // 履歴フィルタリング用
+      isDisconnected1: false, // ソケット1の接続状態
+      isDisconnected2: false, // ソケット2の接続状態
     };
   },
   computed: {
-    /**
-     * 履歴データを新しい順にソートして返す
-     */
+    // 履歴データを新しい順にソート
     sortedHistoryData() {
       return this.historyData.slice().sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     },
-    /**
-     * フィルターに基づいて履歴データをフィルタリング
-     */
+    // フィルターに基づいて履歴データをフィルタリング
     filteredHistoryData() {
-      if (this.historyFilter === 'all') {
-        return this.sortedHistoryData;
-      }
-      return this.sortedHistoryData.filter(entry => entry.tab === this.historyFilter);
-    }
+      return this.historyFilter === 'all'
+        ? this.sortedHistoryData
+        : this.sortedHistoryData.filter(entry => entry.tab === this.historyFilter);
+    },
   },
   mounted() {
     this.initializeSocket(1);
@@ -167,80 +163,195 @@ export default {
     this.loadHistory();
   },
   methods: {
+    /**
+     * ソケットを初期化しイベントリスナーを設定
+     * @param {number} id - 1または2でサーバーURLを選択
+     */
     initializeSocket(id) {
       const url = id === 1 ? SERVER_URL_1 : SERVER_URL_2;
       const socket = io(url);
       this[`socket${id}`] = socket;
+
       socket.on('connect', () => {
         this.addMessage(id, { type: 'system', content: 'サーバーに接続しました' });
         socket.emit('start_interview');
+        this[`isDisconnected${id}`] = false; // 接続状態をリセット
       });
+
       socket.on('disconnect', () => {
         this.addMessage(id, { type: 'system', content: 'サーバーから切断されました' });
+        this[`isDisconnected${id}`] = true; // 切断状態を設定
       });
+
       socket.on('connect_error', error => {
         console.error(`サーバー${id}への接続エラー:`, error);
       });
+
       socket.on('interview_result', message => {
         this.addMessage(id, { type: 'system', content: message });
         this[`isLoading${id}`] = false;
-        this.$nextTick(() => {
-          const textareaRef = `textarea${id}`;
-          this.$refs[textareaRef]?.focus();
+        this.$nextTick(() => this.$refs[`textarea${id}`]?.focus());
+      });
+    },
+
+    /**
+     * 再接続を試みる
+     * @param {number} id - 1または2
+     */
+    reconnect(id) {
+      return new Promise((resolve, reject) => {
+        // 既存のソケットがあれば切断
+        if (this[`socket${id}`]) {
+          this[`socket${id}`].off('connect');
+          this[`socket${id}`].off('connect_error');
+          this[`socket${id}`].disconnect();
+        }
+
+        // ソケットを再初期化
+        const url = id === 1 ? SERVER_URL_1 : SERVER_URL_2;
+        const socket = io(url);
+        this[`socket${id}`] = socket;
+
+        // イベントリスナーを再設定
+        socket.on('connect', () => {
+          this.addMessage(id, { type: 'system', content: 'サーバーに再接続しました' });
+          socket.emit('start_interview');
+          this[`isDisconnected${id}`] = false;
+          resolve();
+        });
+
+        socket.on('connect_error', error => {
+          console.error(`サーバー${id}への再接続エラー:`, error);
+          reject(error);
+        });
+
+        socket.on('disconnect', () => {
+          this.addMessage(id, { type: 'system', content: 'サーバーから切断されました' });
+          this[`isDisconnected${id}`] = true;
+        });
+
+        socket.on('interview_result', message => {
+          this.addMessage(id, { type: 'system', content: message });
+          this[`isLoading${id}`] = false;
+          this.$nextTick(() => this.$refs[`textarea${id}`]?.focus());
         });
       });
     },
+
     /**
-     * メッセージを会話に追加し、履歴に保存する
-     * @param {number} id - 1または2でconversations1またはconversations2を指定
-     * @param {Object} msg - { type: 'user' | 'system', content: 'メッセージ内容' }
+     * メッセージを会話に追加し、履歴に保存
+     * @param {number} id - 1（create）または2（answer）
+     * @param {Object} msg - メッセージオブジェクト
      */
     addMessage(id, msg) {
+      // msg.content が未定義の場合にデフォルト値を設定
+      if (typeof msg.content !== 'string') {
+        console.warn('addMessage called with non-string content:', msg);
+        msg.content = '';
+      }
+
       const conversations = this[`conversations${id}`];
-      const lastConversation = conversations[conversations.length - 1];
-      if (!lastConversation || lastConversation.type !== msg.type) {
+      const lastConv = conversations[conversations.length - 1];
+      if (!lastConv || lastConv.type !== msg.type) {
         conversations.push({ type: msg.type, messages: [msg.content] });
       } else {
-        lastConversation.messages.push(msg.content);
+        lastConv.messages.push(msg.content);
       }
       this.scrollToBottom(id);
 
-      // 履歴データにメッセージを追加
+      // 履歴データに追加
       this.historyData.push({
         timestamp: new Date(),
         type: msg.type,
         content: msg.content,
-        tab: id === 1 ? 'create' : 'answer'
+        tab: id === 1 ? 'create' : 'answer',
       });
 
       this.saveHistory();
     },
+
+    /**
+     * スクロールを最下部に移動
+     * @param {number} id - 1または2
+     */
     scrollToBottom(id) {
       this.$nextTick(() => {
-        const outputArea = this.$refs[`outputArea${id}`];
-        if (outputArea) outputArea.scrollTop = outputArea.scrollHeight;
+        const output = this.$refs[`outputArea${id}`];
+        if (output) output.scrollTop = output.scrollHeight;
       });
     },
-    sendMessage(id) {
-      const userInput = this[`userInput${id}`].trim();
-      if (!userInput) return;
-      this.addMessage(id, { type: 'user', content: `You: ${userInput}` });
-      this[`socket${id}`].emit('user_input', userInput);
+
+    /**
+     * メッセージを送信
+     * @param {number} id - 1（create）または2（answer）
+     */
+    async sendMessage(id) {
+      const input = this[`userInput${id}`].trim();
+      if (!input) return;
+
+      // 切断されている場合は再接続を試みる
+      if (this[`isDisconnected${id}`]) {
+        try {
+          await this.reconnect(id);
+        } catch (error) {
+          console.error(`サーバー${id}への再接続に失敗しました:`, error);
+          this.addMessage(id, { type: 'system', content: 'サーバーに再接続できませんでした。' });
+          return;
+        }
+      }
+
+      this.addMessage(id, { type: 'user', content: `You: ${input}` });
+      this[`socket${id}`].emit('user_input', input);
       this[`userInput${id}`] = '';
       this[`isLoading${id}`] = true;
     },
+
+    /**
+     * メッセージをサニタイズ
+     * @param {string} message - メッセージ内容
+     * @returns {string} サニタイズ済みメッセージ
+     */
     sanitizeMessage(message) {
+      if (typeof message !== 'string') {
+        console.warn('sanitizeMessage called with non-string message:', message);
+        return '';
+      }
       return message.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, '').trim();
     },
+
+    /**
+     * ANSIコードをHTMLに変換
+     * @param {string} message - メッセージ内容
+     * @returns {string} 変換後HTML
+     */
     renderAnsiToHtml(message) {
       return marked(this.ansiConvert.toHtml(this.sanitizeMessage(message)));
     },
+
+    /**
+     * マークダウンをHTMLに変換
+     * @param {string} message - メッセージ内容
+     * @returns {string} 変換後HTML
+     */
     renderMarkdown(message) {
       return marked(message);
     },
+
+    /**
+     * メッセージをレンダリング
+     * @param {string} message - メッセージ内容
+     * @param {string} type - メッセージタイプ
+     * @returns {string} HTMLコンテンツ
+     */
     renderMessage(message, type) {
-      return type === 'system' ? this.renderMarkdown(message) : this.renderAnsiToHtml(message);
+      // messageが未定義の場合は空文字列を渡す
+      const safeMessage = typeof message === 'string' ? message : '';
+      return type === 'system' ? this.renderMarkdown(safeMessage) : this.renderAnsiToHtml(safeMessage);
     },
+
+    /**
+     * ログアウト処理
+     */
     handleLogout() {
       // 会話内容を初期化
       this.conversations1 = [];
@@ -251,25 +362,32 @@ export default {
       this.isLoading2 = false;
       // 履歴モーダルを閉じる
       this.closeHistory();
-      // ルーターでログアウト処理（適宜調整してください）
+      // ルーターでログアウト
       this.$router.push('/');
     },
+
     /**
-     * 「使い方」モーダルを開くメソッド
+     * 「使い方」モーダルを開く
      */
     openReadme() {
       this.openHowToUse();
     },
+
     /**
-     * チャット履歴をロードするメソッド
-     * 単一のメッセージリストとして読み込む
+     * 履歴をロードしバリデーションを行う
      */
     loadHistory() {
       const history = JSON.parse(localStorage.getItem('chatHistory')) || [];
-      this.historyData = history;
+      this.historyData = history.map(entry => ({
+        timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date(),
+        type: ['user', 'system'].includes(entry.type) ? entry.type : 'system',
+        content: typeof entry.content === 'string' ? entry.content : '',
+        tab: ['create', 'answer'].includes(entry.tab) ? entry.tab : 'create',
+      }));
     },
+
     /**
-     * チャット履歴を保存するメソッド（システムメッセージを除外）
+     * 履歴を保存（システムメッセージを除外）
      */
     saveHistory() {
       const EXCLUDED_SYSTEM_MESSAGES = [
@@ -278,47 +396,48 @@ export default {
         'AI: ■悩んでいること、相談したいことを教えてください',
         'サーバーから切断されました',
         'セッションがタイムアウトしました。接続を終了します。',
-        'セッションがタイムアウトしました。接続を終了します。再度ログインしなおしてください。'
+        'セッションがタイムアウトしました。接続を終了します。再度ログインしなおしてください。',
       ];
 
-      // システムメッセージのフィルタリング
-      const filteredHistory = this.historyData.filter(entry => {
-        if (entry.type === 'system') {
-          return !EXCLUDED_SYSTEM_MESSAGES.includes(entry.content);
-        }
-        return true; // 'user' メッセージはそのまま含める
-      });
+      const filteredHistory = this.historyData.filter(entry =>
+        entry.type !== 'system' || !EXCLUDED_SYSTEM_MESSAGES.includes(entry.content)
+      );
 
       localStorage.setItem('chatHistory', JSON.stringify(filteredHistory));
     },
+
     /**
-     * 履歴モーダルを開くメソッド
+     * 履歴モーダルを開く
      */
     openHistory() {
       this.loadHistory();
       this.historyFilter = 'all'; // 初期フィルターを「全て」に設定
       this.showHistory = true;
     },
+
     /**
-     * 履歴モーダルを閉じるメソッド
+     * 履歴モーダルを閉じる
      */
     closeHistory() {
       this.showHistory = false;
     },
+
     /**
-     * 「使い方」モーダルを開くメソッド
+     * 「使い方」モーダルを開く
      */
     openHowToUse() {
       this.showHowToUse = true;
     },
+
     /**
-     * 「使い方」モーダルを閉じるメソッド
+     * 「使い方」モーダルを閉じる
      */
     closeHowToUse() {
       this.showHowToUse = false;
     },
+
     /**
-     * 履歴を削除するメソッド
+     * 履歴を削除
      */
     deleteHistory() {
       if (confirm('本当に履歴を削除しますか？')) {
@@ -327,7 +446,7 @@ export default {
         alert('履歴が削除されました。');
         this.closeHistory();
       }
-    }
+    },
   },
   beforeDestroy() {
     this.socket1?.close();
@@ -341,7 +460,6 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  position: relative;
 }
 .how-to-use-button {
   padding: 10px 20px;
@@ -379,13 +497,11 @@ export default {
 .interview-container {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
   max-width: 1200px;
   width: 100%;
-  height: 90vh;
+  height: 94vh;
   margin: 0 auto;
-  padding: 10px;
-  box-sizing: border-box;
+  padding: 5px;
   background-color: #f5f7fa;
 }
 :deep(p) {
@@ -442,8 +558,7 @@ export default {
   flex-direction: column;
   flex-grow: 1;
   padding: 10px;
-  height: calc(90vh - 135px);
-  box-sizing: border-box;
+  height: calc(83vh - 130px);
 }
 .output {
   flex-grow: 1;
@@ -470,7 +585,6 @@ export default {
   border-radius: 20px;
   max-width: 85%;
   word-wrap: break-word;
-  position: relative;
   margin-bottom: 5px;
 }
 .message.system {
@@ -491,8 +605,6 @@ export default {
 }
 .message-form {
   display: flex;
-  justify-content: center;
-  align-items: center;
   width: 100%;
 }
 .message-form textarea {
@@ -533,15 +645,15 @@ export default {
   height: 20px;
 }
 @media (max-width:768px){
-  .interview-container{padding:10px}
-  .interview-area{height:calc(100vh - 160px)}
-  .message{max-width:90%}
-  .message.system,.message.user{text-align:left}
-  .message-form textarea{font-size:14px}
-  .send-button{font-size:14px;padding:8px;width:40px;height:40px}
-  .icon-send{width:16px;height:16px}
-  .interview header h2{font-size:1.2em}
-  .tab{font-size:1em;padding:10px 15px}
+  .interview-container { padding: 10px; }
+  .interview-area { height: calc(100vh - 160px); }
+  .message { max-width: 90%; }
+  .message.system, .message.user { text-align: left; }
+  .message-form textarea { font-size: 14px; }
+  .send-button { font-size: 14px; padding: 8px; width: 40px; height: 40px; }
+  .icon-send { width: 16px; height: 16px; }
+  .interview header h2 { font-size: 1.2em; }
+  .tab { font-size: 1em; padding: 10px 15px; }
 }
 .loading-spinner {
   display: flex;
@@ -564,8 +676,8 @@ export default {
   margin-top: 10px;
   padding: 5px;
   font-size: 16px;
-  border-radius: 5px;
   border: 1px solid #ccc;
+  border-radius: 5px;
   outline: none;
 }
 
@@ -582,7 +694,6 @@ export default {
   align-items: center;
   z-index: 1000;
 }
-
 .modal-content {
   background-color: #fff;
   width: 90%;
@@ -593,7 +704,6 @@ export default {
   padding: 20px;
   position: relative;
 }
-
 .close-button {
   position: absolute;
   top: 15px;
@@ -603,35 +713,28 @@ export default {
   font-size: 1.2em;
   cursor: pointer;
 }
-
 .history-entry {
   border-bottom: 1px solid #e5e7eb;
   padding: 10px 0;
 }
-
 .history-entry:last-child {
   border-bottom: none;
 }
-
 .history-conversations {
   display: flex;
   gap: 20px;
 }
-
 .history-conversations > div {
   flex: 1;
 }
-
 .history-conversations h4 {
   margin-bottom: 10px;
 }
-
 /* 「使い方」モーダル専用のスタイル */
 .how-to-use-content {
   margin-top: 20px;
   text-align: left;
 }
-
 /* 履歴削除ボタンのスタイル */
 .delete-history-button {
   margin-top: 20px;
@@ -645,7 +748,6 @@ export default {
 .delete-history-button:hover {
   background-color: #c9302c;
 }
-
 /* 履歴モーダル内のタブスタイル */
 .history-tabs {
   display: flex;
