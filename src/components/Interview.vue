@@ -1,17 +1,21 @@
 <!-- Interview.vue -->
 <template>
   <div class="interview-container">
-    <!-- ヘッダーボタン -->
-    <div class="header-buttons">
-      <button @click="handleLogout" class="logout-button">ログアウト</button>
-      <button @click="openReadme" class="how-to-use-button">使い方</button>
-      <button @click="openHistory" class="history-button">履歴</button>
+    <!-- ヘッダーコンテナ -->
+    <div class="header">
+      <div class="user-id">ユーザー: {{ loginID }}</div>
+      <div class="header-buttons">
+        <button @click="handleLogout" class="logout-button">ログアウト</button>
+        <button @click="openReadme" class="how-to-use-button">使い方</button>
+        <button @click="openHistory" class="history-button">履歴</button>
+      </div>
     </div>
 
     <!-- タブ -->
     <div class="tabs">
       <button :class="['tab', activeTab === 'create' ? 'active' : '']" @click="activeTab = 'create'">質問文作成</button>
       <button :class="['tab', activeTab === 'answer' ? 'active' : '']" @click="activeTab = 'answer'">質問に対するAI回答</button>
+      <button :class="['tab', activeTab === 'chatgpt' ? 'active' : '']" @click="activeTab = 'chatgpt'">ChatGPT</button>
     </div>
 
     <!-- タブコンテンツ -->
@@ -65,6 +69,18 @@
           </div>
         </div>
       </div>
+
+      <!-- ChatGPTタブ -->
+      <div v-show="activeTab === 'chatgpt'" class="interview">
+        <header><h2>ChatGPT</h2></header>
+        <div class="interview-area chatgpt-area">
+          <button @click="openChatGPT" class="open-chatgpt-button">ChatGPTを開く</button>
+          <p class="chatgpt-note">
+            ChatGPTへの質問回数の上限は、無料版では1分あたり最大60回です。<br>
+            ログインなどは不要ですぐに利用できます。無料範囲内でどんどん利用してみてください。
+          </p>
+        </div>
+      </div>
     </div>
 
     <!-- 履歴モーダル -->
@@ -79,6 +95,7 @@
           <button :class="['history-tab', historyFilter === 'all' ? 'active' : '']" @click="historyFilter = 'all'">全て</button>
           <button :class="['history-tab', historyFilter === 'create' ? 'active' : '']" @click="historyFilter = 'create'">質問文作成</button>
           <button :class="['history-tab', historyFilter === 'answer' ? 'active' : '']" @click="historyFilter = 'answer'">AI回答</button>
+          <button :class="['history-tab', historyFilter === 'chatgpt' ? 'active' : '']" @click="historyFilter = 'chatgpt'">ChatGPT</button>
         </div>
 
         <!-- 履歴表示 -->
@@ -109,6 +126,7 @@
           <ul>
             <li><strong>質問文作成タブ:</strong><br> AIに質問を作成してもらうためのタブです。テキストボックスに質問を入力し、送信ボタンをクリックしてください。大雑把な質問から開始して、AIとの会話を通してより詳細で具体的な質問文を作成していきます。<br><br></li>
             <li><strong>AI回答タブ:</strong><br> 作成した質問に対するAIの回答を表示します。質問を入力し、送信ボタンをクリックすると、AIからの回答が表示されます。<br><br></li>
+            <li><strong>ChatGPTタブ:</strong><br> ChatGPTのウェブサイトを直接開くことができます。ボタンをクリックすると、新しいタブで「https://chatgpt.com/」が開きます。既存のAIチャット機能とは別に、ChatGPTとの対話を行うことができます。<br><br></li>
             <li><strong>履歴ボタン:</strong><br> 過去のチャット履歴を確認できます。モーダルウィンドウが表示され、以前のメッセージを閲覧できます。<br><br></li>
             <li><strong>ログアウトボタン:</strong><br> アプリからログアウトします。<br><br></li>
           </ul>
@@ -144,7 +162,7 @@ export default {
       historyFilter: 'all', // 履歴フィルタリング用
       isDisconnected1: false, // ソケット1の接続状態
       isDisconnected2: false, // ソケット2の接続状態
-      loginID: '', // 追加: ログインID
+      loginID: '', // ログインID
     };
   },
   computed: {
@@ -281,7 +299,7 @@ export default {
         timestamp: new Date(),
         type: msg.type,
         content: msg.content,
-        tab: id === 1 ? 'create' : 'answer',
+        tab: id === 1 ? 'create' : id === 2 ? 'answer' : 'chatgpt',
       });
 
       this.saveHistory();
@@ -293,7 +311,7 @@ export default {
      */
     scrollToBottom(id) {
       this.$nextTick(() => {
-        const output = this.$refs[`outputArea${id}`];
+        const output = this[`outputArea${id}`];
         if (output) output.scrollTop = output.scrollHeight;
       });
     },
@@ -401,7 +419,7 @@ export default {
         timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date(),
         type: ['user', 'system'].includes(entry.type) ? entry.type : 'system',
         content: typeof entry.content === 'string' ? entry.content : '',
-        tab: ['create', 'answer'].includes(entry.tab) ? entry.tab : 'create',
+        tab: ['create', 'answer', 'chatgpt'].includes(entry.tab) ? entry.tab : 'create',
       }));
     },
 
@@ -416,6 +434,8 @@ export default {
         'サーバーから切断されました',
         'セッションがタイムアウトしました。接続を終了します。',
         'セッションがタイムアウトしました。接続を終了します。再度ログインしなおしてください。',
+        'ChatGPTを開きました。',
+        'サーバーに再接続しました',
       ];
 
       const filteredHistory = this.historyData.filter(entry =>
@@ -466,6 +486,21 @@ export default {
         this.closeHistory();
       }
     },
+
+    /**
+     * ChatGPTを新しいタブで開く
+     */
+    openChatGPT() {
+      window.open('https://chatgpt.com/', '_blank', 'noopener,noreferrer');
+      // 履歴に記録する場合は以下を追加
+      this.historyData.push({
+        timestamp: new Date(),
+        type: 'system',
+        content: 'ChatGPTを開きました。',
+        tab: 'chatgpt',
+      });
+      this.saveHistory();
+    },
   },
   beforeDestroy() {
     this.socket1?.close();
@@ -475,11 +510,26 @@ export default {
 </script>
 
 <style scoped>
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.user-id {
+  font-size: 1em;
+  color: #333;
+  padding: 5px;
+}
+
 .header-buttons {
   display: flex;
-  justify-content: flex-end;
   gap: 10px;
 }
+
 .how-to-use-button {
   padding: 10px 20px;
   background-color: #4CAF50;
@@ -790,5 +840,33 @@ export default {
   border-bottom: 2px solid #0066cc;
   font-weight: bold;
   color: #0066cc;
+}
+
+/* 新規追加: ChatGPTタブ用のボタンスタイル */
+.open-chatgpt-button {
+  padding: 15px 30px;
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.3s;
+}
+.open-chatgpt-button:hover {
+  background-color: #005bb5;
+}
+.chatgpt-area {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.chatgpt-note {
+  margin-top: 15px;
+  font-size: 0.9em;
+  color: #666;
+  text-align: center;
 }
 </style>
