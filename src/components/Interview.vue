@@ -311,8 +311,10 @@ export default {
      */
     scrollToBottom(id) {
       this.$nextTick(() => {
-        const output = this[`outputArea${id}`];
-        if (output) output.scrollTop = output.scrollHeight;
+        const output = this.$refs[`outputArea${id}`];
+        if (output) {
+          output.scrollTop = output.scrollHeight;
+        }
       });
     },
 
