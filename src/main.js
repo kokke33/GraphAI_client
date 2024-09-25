@@ -7,9 +7,9 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 // ルート定義
 const routes = [
-  { path: '/', redirect: '/interview' }, // ルートにアクセスしたら /interview にリダイレクト
-  // { path: '/login', component: Login }, // ログイン画面をコメントアウト
-  { path: '/interview', component: Interview }
+  { path: '/', redirect: '/login' }, // ルートにアクセスしたら /login にリダイレクト
+  { path: '/login', component: Login },
+  { path: '/interview', component: Interview },
   // 他のルートがあればここに追加
 ];
 

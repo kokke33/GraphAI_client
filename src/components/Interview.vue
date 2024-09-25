@@ -5,7 +5,7 @@
     <div class="header">
       <div class="user-id">ユーザー: {{ loginID }}</div>
       <div class="header-buttons">
-        <!--<button @click="handleLogout" class="logout-button">ログアウト</button>-->
+        <button @click="handleLogout" class="logout-button">ログアウト</button>
         <button @click="openReadme" class="how-to-use-button">使い方</button>
         <button @click="openHistory" class="history-button">履歴</button>
       </div>
@@ -179,12 +179,12 @@ export default {
   },
   mounted() {
     // ログインIDをローカルストレージから取得
-    // this.loginID = localStorage.getItem('loginID') || '';
-    // if (!this.loginID) {
-    //   // ログインしていない場合、ログインページにリダイレクト
-    //   this.$router.push('/login');
-    //   return;
-    // }
+    this.loginID = localStorage.getItem('loginID') || '';
+    if (!this.loginID) {
+      // ログインしていない場合、ログインページにリダイレクト
+      this.$router.push('/login');
+      return;
+    }
     this.initializeSocket(1);
     this.initializeSocket(2);
     this.loadHistory();

@@ -3,9 +3,11 @@
   <div class="login-page">
     <div class="login-container">
       <h2>ログイン</h2>
+      <h4>無料試作期間中</h4>
+      <h5>During the free trial period</h5>
       <form @submit.prevent="handleLogin">
         <div class="form-group">
-          <label for="username">ユーザー名</label>
+          <label for="username">ユーザー名(user1)</label>
           <input
             type="text"
             v-model="username"
@@ -15,7 +17,7 @@
           />
         </div>
         <div class="form-group">
-          <label for="password">パスワード</label>
+          <label for="password">パスワード(user1)</label>
           <input
             type="password"
             v-model="password"
