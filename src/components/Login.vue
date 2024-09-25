@@ -41,7 +41,7 @@ export default {
       // サンプルユーザーのリスト（画面表示しません）
       sampleUsers: [
         { username: 'tss', password: 'tsstss' },
-        { username: 'user1', password: 'password1' },
+        { username: 'user1', password: 'user1' },
         { username: 'user2', password: 'password2' },
         { username: 'user3', password: 'password3' },
         { username: 'user4', password: 'password4' },
