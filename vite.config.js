@@ -4,11 +4,14 @@ import vue from '@vitejs/plugin-vue'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  server: {
-    host: true,
-    historyApiFallback: true  // 追加: すべてのリクエストをindex.htmlにリダイレクト
-  },
   plugins: [vue()],
+  build: {
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
