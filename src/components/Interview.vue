@@ -33,7 +33,7 @@
           </div>
           <div class="input-area">
             <form @submit.prevent="sendMessage(1)" class="message-form">
-              <textarea ref="textarea1" v-model="userInput1" placeholder="メッセージを入力..." rows="3"></textarea>
+              <textarea ref="textarea1" v-model="userInput1" placeholder="メッセージを入力..." rows="2"></textarea>
               <button type="submit" class="send-button" aria-label="送信">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon-send" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M2.94 5.94a1 1 0 011.414 0L10 11.086l5.656-5.146a1 1 0 111.414 1.414l-6 5.5a1 1 0 01-1.414 0l-6-5.5a1 1 0 010-1.414z"/>
@@ -57,7 +57,7 @@
           </div>
           <div class="input-area">
             <form @submit.prevent="sendMessage(2)" class="message-form">
-              <textarea ref="textarea2" v-model="userInput2" placeholder="メッセージを入力..." rows="3"></textarea>
+              <textarea ref="textarea2" v-model="userInput2" placeholder="メッセージを入力..." rows="2"></textarea>
               <button type="submit" class="send-button" aria-label="送信">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon-send" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M2.94 5.94a1 1 0 011.414 0L10 11.086l5.656-5.146a1 1 0 111.414 1.414l-6 5.5a1 1 0 01-1.414 0l-6-5.5a1 1 0 010-1.414z"/>
@@ -918,6 +918,7 @@ html, body {
   /* 履歴モーダルのテキストサイズ調整 */
   .history-entry p {
     font-size: 0.9em;
+    padding: 5px;
   }
 
   /* その他の要素の調整が必要な場合はここに追加 */
@@ -1089,5 +1090,9 @@ html, body {
   color: #666;
   text-align: center;
 }
+  /* ::v-deep を使用して .message.system 内の <p> タグにスタイルを適用 */
+  ::v-deep .message p {
+    margin: 2px 0; /* 上下のマージンを8pxに設定 */
+  }
 </style>
 
