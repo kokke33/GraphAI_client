@@ -674,7 +674,7 @@ html, body {
   color: #0066cc;
 }
 
-/* 縮小時のタブボタンスタイル */
+/* 縮小時のタブボタンスタイルTEST */
 .tabs.tabs-small .tab {
   padding: 10px 15px;
   font-size: 1em;
