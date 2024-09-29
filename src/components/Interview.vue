@@ -685,23 +685,26 @@ html, body {
 }
 
 /* タブのスタイル */
+  /* タブのスタイル */
   .tabs {
     position: fixed;
-    top: 7.5vh; /* 修正: ヘッダーの高さに合わせて調整 */
+    top: 60px; /* ヘッダーの高さに合わせる */
     left: 0;
     width: 100%;
     display: flex;
     border-bottom: 2px solid #e5e7eb;
     margin: 0;
-    padding: 5px;
+    padding: 10px;
     background-color: #f5f7fa;
     transition: all 0.3s ease;
     z-index: 1001; /* ヘッダーより下 */
   }
+
   /* 縮小時のタブスタイル */
   .tabs-small {
-    top: 50px; /* 修正: ヘッダー縮小後の高さに合わせる */
+    top: 40px; /* ヘッダー縮小後の高さに合わせる */
   }
+
 
 /* タブボタンのスタイル */
 .tab {
