@@ -15,6 +15,7 @@
     <div :class="['tabs', { 'tabs-small': isScrolled }]">
       <button :class="['tab', activeTab === 'create' ? 'active' : '']" @click="activeTab = 'create'">質問作成</button>
       <button :class="['tab', activeTab === 'answer' ? 'active' : '']" @click="activeTab = 'answer'">AI回答</button>
+      <button :class="['tab', activeTab === 'sechat' ? 'active' : '']" @click="activeTab = 'sechat'">SEチャットタブ</button>
       <button :class="['tab', activeTab === 'chatgpt' ? 'active' : '']" @click="activeTab = 'chatgpt'">ChatGPT</button>
     </div>
 
@@ -68,6 +69,31 @@
         </div>
       </div>
 
+      <!-- SEチャットタブ -->
+      <div v-show="activeTab === 'sechat'" class="interview">
+        <div class="interview-area" ref="interviewArea" @scroll="handleScroll">
+          <div class="output" ref="outputArea3">
+            <div v-for="(conversation, index) in conversations3" :key="index" :class="['conversation-unit', conversation.type]">
+              <div v-for="(message, msgIndex) in conversation.messages" :key="msgIndex" :class="['message', conversation.type]">
+                <div v-html="renderMessage(message, conversation.type)"></div>
+              </div>
+            </div>
+            <div v-show="isLoading3" class="loading-spinner"><div class="spinner"></div></div>
+          </div>
+          <div class="input-area">
+            <form @submit.prevent="sendMessage(3)" class="message-form">
+              <textarea ref="textarea3" v-model="userInput3" placeholder="メッセージを入力..." rows="2"></textarea>
+              <button type="submit" class="send-button" aria-label="送信">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon-send" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2.94 5.94a1 1 0 011.414 0L10 11.086l5.656-5.146a1 1 0 111.414 1.414l-6 5.5a1 1 0 01-1.414 0l-6-5.5a1 1 0 010-1.414z"/>
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
       <!-- ChatGPTタブ -->
       <div v-show="activeTab === 'chatgpt'" class="interview">
         <div class="interview-area chatgpt-area" ref="interviewArea" @scroll="handleScroll">
@@ -78,7 +104,6 @@
           </p>
         </div>
       </div>
-    </div>
 
     <!-- 履歴モーダル -->
     <div v-if="showHistory" class="modal-overlay" @click.self="closeHistory">
@@ -93,6 +118,8 @@
           <button :class="['history-tab', historyFilter === 'create' ? 'active' : '']" @click="historyFilter = 'create'">質問作成</button>
           <button :class="['history-tab', historyFilter === 'answer' ? 'active' : '']" @click="historyFilter = 'answer'">AI回答</button>
           <button :class="['history-tab', historyFilter === 'chatgpt' ? 'active' : '']" @click="historyFilter = 'chatgpt'">ChatGPT</button>
+          <!-- 新しいSEチャットタブのフィルターを追加 -->
+          <button :class="['history-tab', historyFilter === 'sechat' ? 'active' : '']" @click="historyFilter = 'sechat'">SEチャットタブ</button>
         </div>
 
         <!-- 履歴表示 -->
@@ -124,6 +151,7 @@
             <li><strong>質問作成タブ:</strong><br> AIに質問を作成してもらうためのタブです。テキストボックスに質問を入力し、送信ボタンをクリックしてください。大雑把な質問から開始して、AIとの会話を通してより詳細で具体的な質問文を作成していきます。<br><br></li>
             <li><strong>AI回答タブ:</strong><br> 作成した質問に対するAIの回答を表示します。質問を入力し、送信ボタンをクリックすると、AIからの回答が表示されます。<br><br></li>
             <li><strong>ChatGPTタブ:</strong><br> ChatGPTのウェブサイトを直接開くことができます。ボタンをクリックすると、新しいタブで「https://chatgpt.com/」が開きます。既存のAIチャット機能とは別に、ChatGPTとの対話を行うことができます。<br><br></li>
+            <li><strong>SEチャットタブ:</strong><br> SEチャットタブでは、AI回答タブと同様にAIとチャットができます。特定の用途や機能について詳しくAIと対話することができます。<br><br></li>
             <li><strong>履歴ボタン:</strong><br> 過去のチャット履歴を確認できます。モーダルウィンドウが表示され、以前のメッセージを閲覧できます。<br><br></li>
             <li><strong>ログアウトボタン:</strong><br> アプリからログアウトします。<br><br></li>
           </ul>
@@ -138,7 +166,7 @@
 import io from 'socket.io-client';
 import { marked } from 'marked';
 import Convert from 'ansi-to-html';
-import { SERVER_URL_1, SERVER_URL_2 } from '../config';
+import { SERVER_URL_1, SERVER_URL_2, SERVER_URL_3 } from '../config';
 
 export default {
   data() {
@@ -146,21 +174,26 @@ export default {
       activeTab: 'create',
       conversations1: [],
       conversations2: [],
+      conversations3: [], // 新しいタブ用の会話
       socket1: null,
       socket2: null,
+      socket3: null, // 新しいタブ用のソケット
       userInput1: '',
       userInput2: '',
+      userInput3: '', // 新しいタブ用のユーザー入力
       ansiConvert: new Convert(),
       isLoading1: false,
       isLoading2: false,
+      isLoading3: false, // 新しいタブ用のローディング状態
       showHistory: false,
       historyData: [],
       showHowToUse: false,
-      historyFilter: 'all', // 履歴フィルタリング用
-      isDisconnected1: false, // ソケット1の接続状態
-      isDisconnected2: false, // ソケット2の接続状態
-      loginID: '', // ログインID
-      isScrolled: false, // スクロール状態
+      historyFilter: 'all',
+      isDisconnected1: false,
+      isDisconnected2: false,
+      isDisconnected3: false, // 新しいタブ用の接続状態
+      loginID: '',
+      isScrolled: false,
     };
   },
   computed: {
@@ -193,6 +226,7 @@ export default {
     }
     this.initializeSocket(1);
     this.initializeSocket(2);
+    this.initializeSocket(3); // 新しいタブ用のソケットを初期化
     this.loadHistory();
 
     // 初期スクロールリスナーの設定
@@ -227,10 +261,17 @@ export default {
 
     /**
      * ソケットを初期化しイベントリスナーを設定
-     * @param {number} id - 1または2でサーバーURLを選択
+     * @param {number} id - 1または2または3でサーバーURLを選択
      */
     initializeSocket(id) {
-      const url = id === 1 ? SERVER_URL_1 : SERVER_URL_2;
+      let url;
+      if (id === 1) {
+        url = SERVER_URL_1;
+      } else if (id === 2) {
+        url = SERVER_URL_2;
+      } else if (id === 3) {
+        url = SERVER_URL_3; // 新しいタブ用のサーバーURL
+      }
       const socket = io(url, {
         query: {
           loginID: this.loginID, // ログインIDをクエリパラメータとして送信
@@ -262,7 +303,7 @@ export default {
 
     /**
      * 再接続を試みる
-     * @param {number} id - 1または2
+     * @param {number} id - 1または2または3
      */
     reconnect(id) {
       return new Promise((resolve, reject) => {
@@ -274,7 +315,14 @@ export default {
         }
 
         // ソケットを再初期化
-        const url = id === 1 ? SERVER_URL_1 : SERVER_URL_2;
+        let url;
+        if (id === 1) {
+          url = SERVER_URL_1;
+        } else if (id === 2) {
+          url = SERVER_URL_2;
+        } else if (id === 3) {
+          url = SERVER_URL_3;
+        }
         const socket = io(url, {
           query: {
             loginID: this.loginID, // ログインIDを再送信
@@ -310,7 +358,7 @@ export default {
 
     /**
      * メッセージを会話に追加し、履歴に保存
-     * @param {number} id - 1（create）または2（answer）
+     * @param {number} id - 1（create）または2（answer）または3（sechat）
      * @param {Object} msg - メッセージオブジェクト
      */
     addMessage(id, msg) {
@@ -334,7 +382,7 @@ export default {
         timestamp: new Date(),
         type: msg.type,
         content: msg.content,
-        tab: id === 1 ? 'create' : id === 2 ? 'answer' : 'chatgpt',
+        tab: id === 1 ? 'create' : id === 2 ? 'answer' : id === 3 ? 'sechat' : 'chatgpt',
       });
 
       this.saveHistory();
@@ -342,7 +390,7 @@ export default {
 
     /**
      * スクロールを最下部に移動
-     * @param {number} id - 1または2
+     * @param {number} id - 1または2または3
      */
     scrollToBottom(id) {
       this.$nextTick(() => {
@@ -355,7 +403,7 @@ export default {
 
     /**
      * メッセージを送信
-     * @param {number} id - 1（create）または2（answer）
+     * @param {number} id - 1（create）または2（answer）または3（sechat）
      */
     async sendMessage(id) {
       const input = this[`userInput${id}`].trim();
@@ -428,10 +476,13 @@ export default {
       // 会話内容を初期化
       this.conversations1 = [];
       this.conversations2 = [];
+      this.conversations3 = [];
       this.userInput1 = '';
       this.userInput2 = '';
+      this.userInput3 = '';
       this.isLoading1 = false;
       this.isLoading2 = false;
+      this.isLoading3 = false;
       // 履歴モーダルを閉じる
       this.closeHistory();
       // ログインIDを削除
@@ -456,7 +507,7 @@ export default {
         timestamp: entry.timestamp ? new Date(entry.timestamp) : new Date(),
         type: ['user', 'system'].includes(entry.type) ? entry.type : 'system',
         content: typeof entry.content === 'string' ? entry.content : '',
-        tab: ['create', 'answer', 'chatgpt'].includes(entry.tab) ? entry.tab : 'create',
+        tab: ['create', 'answer', 'chatgpt', 'sechat'].includes(entry.tab) ? entry.tab : 'create',
       }));
     },
 
@@ -542,11 +593,13 @@ export default {
   beforeDestroy() {
     this.socket1?.close();
     this.socket2?.close();
+    this.socket3?.close(); // 新しいソケットのクリーンアップ
   },
 };
 </script>
 
 <style scoped>
+/* 既存のスタイル */
 /* グローバルなリセット */
 *,
 *::before,
@@ -684,8 +737,7 @@ html, body {
 .interview-container {
   display: flex;
   flex-direction: column;
-  height: 95vh;
-  /* padding-top: 110px; /* ヘッダー (60px) + タブ (50px) */
+  height: 98vh;
   padding-left: 10px;
   padding-right: 10px;
   background-color: #f5f7fa;
@@ -700,25 +752,25 @@ html, body {
   margin-top: 110px; /* ヘッダーとタブの高さを考慮 */
 }
 
-  /* 各インタビューペインのスタイル */
-  .interview {
-    display: flex;
-    flex-direction: column;
-    flex: 1; /* 修正 */
-    background-color: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    overflow: hidden;
-  }
+/* 各インタビューペインのスタイル */
+.interview {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
 
-  /* インタビューエリアのスタイル */
-  .interview-area {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    padding: 10px;
-    overflow-y: auto;
-  }
+/* インタビューエリアのスタイル */
+.interview-area {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
 
 /* 出力エリアのスタイル */
 .output {
@@ -764,7 +816,8 @@ html, body {
 .message.user {
   background-color: #dcf8c6;
   color: #006600;
-  text-align: right;
+  text-align: left; /* 変更: メッセージ内のテキストを左揃えに */
+  align-self: flex-end; /* 追加: メッセージ自体を右側に表示 */
 }
 
 /* 入力エリアのスタイル */
@@ -829,8 +882,7 @@ html, body {
 /* レスポンシブデザイン: スマートフォン向けスタイル */
   @media (max-width:768px){
   .interview-container { 
-    height: 95vh;
-    /* overflow: hidden; 削除 */
+    height: 98vh;
     padding-left: 10px;
     padding-right: 10px;
   }
@@ -853,7 +905,7 @@ html, body {
   /* テキストエリアのフォントサイズとパディングを調整 */
   .message-form textarea { 
     font-size: 16px; 
-    padding: 10px 12px; /* パディングを縮小 */
+    padding: 10px 12px;
   }
 
   /* 送信ボタンのフォントサイズとパディングを調整 */
@@ -883,31 +935,31 @@ html, body {
 
   /* ヘッダー全体のレイアウト調整: 折り返しを防止 */
   .header {
-    flex-wrap: nowrap; /* 折り返しを防止 */
+    flex-wrap: nowrap;
   }
 
   /* ユーザーIDのスタイル調整 */
   .user-id {
-    font-size: 0.9em; /* フォントサイズを縮小 */
+    font-size: 0.9em;
     padding: 5px;
-    flex-shrink: 1; /* 縮小可能に設定 */
-    white-space: nowrap; /* 折り返し防止 */
-    overflow: hidden; /* オーバーフローを隠す */
-    text-overflow: ellipsis; /* 省略記号を表示 */
+    flex-shrink: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* ヘッダーボタンコンテナの隙間を縮小 */
   .header-buttons {
     display: flex;
-    gap: 5px; /* ボタン間の隙間を縮小 */
+    gap: 5px;
   }
 
   /* ヘッダーボタンのスタイル調整 */
   .header-buttons button {
-    padding: 6px 10px; /* パディングを縮小 */
-    font-size: 0.8em; /* フォントサイズを縮小 */
-    white-space: nowrap; /* 折り返し防止 */
-    min-width: 60px; /* ボタンの最小幅を設定 */
+    padding: 6px 10px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    min-width: 60px;
   }
 
   /* モーダルコンテンツのパディングを調整 */
@@ -920,8 +972,6 @@ html, body {
     font-size: 0.9em;
     padding: 5px;
   }
-
-  /* その他の要素の調整が必要な場合はここに追加 */
 }
 
 /* ローディングスピナーのスタイル */
@@ -1082,6 +1132,7 @@ html, body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  height: 100%; /* 必要に応じて調整 */
 }
 
 .chatgpt-note {
@@ -1090,9 +1141,9 @@ html, body {
   color: #666;
   text-align: center;
 }
-  /* ::v-deep を使用して .message.system 内の <p> タグにスタイルを適用 */
-  ::v-deep .message p {
-    margin: 2px 0; /* 上下のマージンを8pxに設定 */
-  }
-</style>
 
+/* ::v-deep を使用して .message.system 内の <p> タグにスタイルを適用 */
+::v-deep .message p {
+  margin: 2px 0;
+}
+</style>

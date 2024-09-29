@@ -1,11 +1,11 @@
 {
   "name": "vuejs-with-vite",
   "version": "0.0.0",
-  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "node server.mjs"
+    "preview": "vite preview --port 4173",
+    "start": "npm run build"
   },
   "dependencies": {
     "@types/dompurify": "^3.0.5",
@@ -17,12 +17,11 @@
     "express": "^4.21.0",
     "marked": "^14.1.0",
     "socket.io-client": "^4.7.5",
-    "vite-plugin-rewrite-all": "^1.0.2",
     "vue": "^3.3.4",
     "vue-router": "^4.0.13"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.2.3",
-    "vite": "^4.2.3"
+    "vite": "^4.5.1"
   }
 }

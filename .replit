@@ -1,4 +1,4 @@
-run = "npm start"
+run = "vite"
 entrypoint = "src/App.vue"
 
 hidden = [".config", "tsconfig.json", "tsconfig.node.json", "vite.config.js", ".gitignore"]
@@ -37,6 +37,16 @@ publicDir = "dist"
 [[ports]]
 localPort = 3000
 externalPort = 80
+
+[[ports]]
+localPort = 4173
+externalPort = 3001
+exposeLocalhost = true
+
+[[ports]]
+localPort = 5173
+externalPort = 3002
+exposeLocalhost = true
 
 [[ports]]
 localPort = 9005

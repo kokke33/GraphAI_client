@@ -8,10 +8,29 @@
 さらに、選ばれた解決策に基づいて次の重要な質問を提案し、問題解決プロセスを継続的に深化させます。
 これにより、ユーザーは高品質な問題解決アプローチを効率的に得ることができます。
 
-## FireBase デプロイ
+## github
+```
+git pull origin main
+git add .
+git commit -m "コミットメッセージ"
+git push origin main
+```
+
+# FireBase
+FireBaseをインストール。
+開発環境がReplitの場合は「--no-localhost」が好き。
+```
+ npx firebase-tools login --no-localhost
+```
+
+## デプロイ
+必要に応じて再ログイン
+```
+firebase login --no-localhost
+```
 ```shell
 npm run build
-firebase deploy
+npx firebase deploy
 ```
 
 ```shell
