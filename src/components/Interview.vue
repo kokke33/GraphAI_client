@@ -150,8 +150,8 @@
           <ul>
             <li><strong>質問作成タブ:</strong><br> AIに質問を作成してもらうためのタブです。テキストボックスに質問を入力し、送信ボタンをクリックしてください。大雑把な質問から開始して、AIとの会話を通してより詳細で具体的な質問文を作成していきます。<br><br></li>
             <li><strong>AI回答タブ:</strong><br> 作成した質問に対するAIの回答を表示します。質問を入力し、送信ボタンをクリックすると、AIからの回答が表示されます。<br><br></li>
-            <li><strong>ChatGPTタブ:</strong><br> ChatGPTのウェブサイトを直接開くことができます。ボタンをクリックすると、新しいタブで「https://chatgpt.com/」が開きます。既存のAIチャット機能とは別に、ChatGPTとの対話を行うことができます。<br><br></li>
             <li><strong>SEチャットタブ:</strong><br> SEチャットタブでは、AI回答タブと同様にAIとチャットができます。特定の用途や機能についてベテランSEと新人SE間での会話をシミュレートします。<br><br></li>
+            <li><strong>ChatGPTタブ:</strong><br> ChatGPTのウェブサイトを直接開くことができます。ボタンをクリックすると、新しいタブで「https://chatgpt.com/」が開きます。既存のAIチャット機能とは別に、ChatGPTとの対話を行うことができます。<br><br></li>
             <li><strong>履歴ボタン:</strong><br> 過去のチャット履歴を確認できます。モーダルウィンドウが表示され、以前のメッセージを閲覧できます。<br><br></li>
             <li><strong>ログアウトボタン:</strong><br> アプリからログアウトします。<br><br></li>
           </ul>
@@ -367,7 +367,8 @@ export default {
         console.warn('addMessage called with non-string content:', msg);
         msg.content = '';
       }
-
+      // 「■システムプロンプト:」を空白に置換
+      msg.content = msg.content.replace('■システムプロンプト:', '');
       const conversations = this[`conversations${id}`];
       const lastConv = conversations[conversations.length - 1];
       if (!lastConv || lastConv.type !== msg.type) {
@@ -376,7 +377,6 @@ export default {
         lastConv.messages.push(msg.content);
       }
       this.scrollToBottom(id);
-
       // 履歴データに追加
       this.historyData.push({
         timestamp: new Date(),
@@ -384,7 +384,6 @@ export default {
         content: msg.content,
         tab: id === 1 ? 'create' : id === 2 ? 'answer' : id === 3 ? 'sechat' : 'chatgpt',
       });
-
       this.saveHistory();
     },
 
@@ -516,9 +515,7 @@ export default {
      */
     saveHistory() {
       const EXCLUDED_SYSTEM_MESSAGES = [
-        'AI: プロンプトを一緒に作りましょう。何についてのプロンプトでしょうか？',
         'サーバーに接続しました',
-        'AI: ■悩んでいること、相談したいことを教えてください',
         'サーバーから切断されました',
         'セッションがタイムアウトしました。接続を終了します。',
         'セッションがタイムアウトしました。接続を終了します。再度ログインしなおしてください。',
@@ -526,8 +523,10 @@ export default {
         'サーバーに再接続しました',
       ];
 
-      const filteredHistory = this.historyData.filter(entry =>
-        entry.type !== 'system' || !EXCLUDED_SYSTEM_MESSAGES.includes(entry.content)
+      const filteredHistory = this.historyData.filter(entry => 
+        entry.type !== 'system' 
+        || (!EXCLUDED_SYSTEM_MESSAGES.includes(entry.content) 
+            && !entry.content.startsWith('■システムプロンプト:'))
       );
 
       localStorage.setItem('chatHistory', JSON.stringify(filteredHistory));
@@ -688,13 +687,13 @@ html, body {
 /* タブのスタイル */
   .tabs {
     position: fixed;
-    top: 70px; /* 修正: ヘッダーの高さに合わせて調整 */
+    top: 7.5vh; /* 修正: ヘッダーの高さに合わせて調整 */
     left: 0;
     width: 100%;
     display: flex;
     border-bottom: 2px solid #e5e7eb;
     margin: 0;
-    padding: 0;
+    padding: 5px;
     background-color: #f5f7fa;
     transition: all 0.3s ease;
     z-index: 1001; /* ヘッダーより下 */
