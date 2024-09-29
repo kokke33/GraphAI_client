@@ -15,7 +15,7 @@
     <div :class="['tabs', { 'tabs-small': isScrolled }]">
       <button :class="['tab', activeTab === 'create' ? 'active' : '']" @click="activeTab = 'create'">質問作成</button>
       <button :class="['tab', activeTab === 'answer' ? 'active' : '']" @click="activeTab = 'answer'">AI回答</button>
-      <button :class="['tab', activeTab === 'sechat' ? 'active' : '']" @click="activeTab = 'sechat'">SEチャットタブ</button>
+      <button :class="['tab', activeTab === 'sechat' ? 'active' : '']" @click="activeTab = 'sechat'">Chat</button>
       <button :class="['tab', activeTab === 'chatgpt' ? 'active' : '']" @click="activeTab = 'chatgpt'">ChatGPT</button>
     </div>
 
@@ -94,16 +94,17 @@
       </div>
     </div>
 
-      <!-- ChatGPTタブ -->
-      <div v-show="activeTab === 'chatgpt'" class="interview">
-        <div class="interview-area chatgpt-area" ref="interviewArea" @scroll="handleScroll">
-          <button @click="openChatGPT" class="open-chatgpt-button">ChatGPTを開く</button>
-          <p class="chatgpt-note">
-            ChatGPTへの質問回数の上限は、無料版では1分あたり最大60回です。<br>
-            ログインなどは不要ですぐに利用できます。無料範囲内でどんどん利用してみてください。
-          </p>
-        </div>
+    <!-- ChatGPTタブ -->
+    <div v-show="activeTab === 'chatgpt'" class="interview">
+      <div class="chatgpt-area" ref="interviewArea">
+        <button @click="openChatGPT" class="open-chatgpt-button">ChatGPTを開く</button>
+        <p class="chatgpt-note">
+          ChatGPTへの質問回数の上限は、無料版では1分あたり最大60回です。<br>
+          ログインなどは不要ですぐに利用できます。無料範囲内でどんどん利用してみてください。
+        </p>
       </div>
+    </div>
+
 
     <!-- 履歴モーダル -->
     <div v-if="showHistory" class="modal-overlay" @click.self="closeHistory">
@@ -117,8 +118,8 @@
           <button :class="['history-tab', historyFilter === 'all' ? 'active' : '']" @click="historyFilter = 'all'">全て</button>
           <button :class="['history-tab', historyFilter === 'create' ? 'active' : '']" @click="historyFilter = 'create'">質問作成</button>
           <button :class="['history-tab', historyFilter === 'answer' ? 'active' : '']" @click="historyFilter = 'answer'">AI回答</button>
+          <button :class="['history-tab', historyFilter === 'sechat' ? 'active' : '']" @click="historyFilter = 'sechat'">Chat</button>
           <button :class="['history-tab', historyFilter === 'chatgpt' ? 'active' : '']" @click="historyFilter = 'chatgpt'">ChatGPT</button>
-          <button :class="['history-tab', historyFilter === 'sechat' ? 'active' : '']" @click="historyFilter = 'sechat'">SEチャットタブ</button>
         </div>
 
         <!-- 履歴表示 -->
@@ -685,29 +686,28 @@ html, body {
 }
 
 /* タブのスタイル */
-.tabs {
-  position: fixed;
-  top: 60px; /* ヘッダーの高さに合わせる */
-  left: 0;
-  width: 100%;
-  display: flex;
-  border-bottom: 2px solid #e5e7eb;
-  margin: 0;
-  padding: 0;
-  background-color: #f5f7fa;
-  transition: all 0.3s ease;
-  z-index: 1001; /* ヘッダーより下 */
-}
-
-/* 縮小時のタブスタイル */
-.tabs-small {
-  top: 40px; /* ヘッダー縮小後の高さに合わせる */
-}
+  .tabs {
+    position: fixed;
+    top: 70px; /* 修正: ヘッダーの高さに合わせて調整 */
+    left: 0;
+    width: 100%;
+    display: flex;
+    border-bottom: 2px solid #e5e7eb;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f7fa;
+    transition: all 0.3s ease;
+    z-index: 1001; /* ヘッダーより下 */
+  }
+  /* 縮小時のタブスタイル */
+  .tabs-small {
+    top: 50px; /* 修正: ヘッダー縮小後の高さに合わせる */
+  }
 
 /* タブボタンのスタイル */
 .tab {
   flex: 1;
-  padding: 15px 20px;
+  padding: 5px 10px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
@@ -728,7 +728,7 @@ html, body {
 
 /* 縮小時のタブボタンスタイルTEST */
 .tabs.tabs-small .tab {
-  padding: 10px 15px;
+  padding: 5px 10px;
   font-size: 1em;
 }
 
@@ -755,7 +755,7 @@ html, body {
 .interview {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 100;
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -929,7 +929,7 @@ html, body {
   /* タブのフォントサイズとパディングを調整 */
   .tab { 
     font-size: 1em; 
-    padding: 10px 15px; 
+    padding: 5px 10px; 
   }
 
   /* ヘッダー全体のレイアウト調整: 折り返しを防止 */
@@ -1126,13 +1126,15 @@ html, body {
   background-color: #005bb5;
 }
 
-  .chatgpt-area {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start; /* 変更: 中央から上部に変更 */
-    align-items: center;
-    height: 100%; /* 必要に応じて調整 */
-  }
+.chatgpt-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* flex: none; これが不要になる場合もあります */
+  padding: 20px;
+  text-align: center;
+}
+
 
 .chatgpt-note {
   margin-top: 15px;
