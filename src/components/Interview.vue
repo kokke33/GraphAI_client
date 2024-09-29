@@ -118,7 +118,6 @@
           <button :class="['history-tab', historyFilter === 'create' ? 'active' : '']" @click="historyFilter = 'create'">質問作成</button>
           <button :class="['history-tab', historyFilter === 'answer' ? 'active' : '']" @click="historyFilter = 'answer'">AI回答</button>
           <button :class="['history-tab', historyFilter === 'chatgpt' ? 'active' : '']" @click="historyFilter = 'chatgpt'">ChatGPT</button>
-          <!-- 新しいSEチャットタブのフィルターを追加 -->
           <button :class="['history-tab', historyFilter === 'sechat' ? 'active' : '']" @click="historyFilter = 'sechat'">SEチャットタブ</button>
         </div>
 
@@ -151,7 +150,7 @@
             <li><strong>質問作成タブ:</strong><br> AIに質問を作成してもらうためのタブです。テキストボックスに質問を入力し、送信ボタンをクリックしてください。大雑把な質問から開始して、AIとの会話を通してより詳細で具体的な質問文を作成していきます。<br><br></li>
             <li><strong>AI回答タブ:</strong><br> 作成した質問に対するAIの回答を表示します。質問を入力し、送信ボタンをクリックすると、AIからの回答が表示されます。<br><br></li>
             <li><strong>ChatGPTタブ:</strong><br> ChatGPTのウェブサイトを直接開くことができます。ボタンをクリックすると、新しいタブで「https://chatgpt.com/」が開きます。既存のAIチャット機能とは別に、ChatGPTとの対話を行うことができます。<br><br></li>
-            <li><strong>SEチャットタブ:</strong><br> SEチャットタブでは、AI回答タブと同様にAIとチャットができます。特定の用途や機能について詳しくAIと対話することができます。<br><br></li>
+            <li><strong>SEチャットタブ:</strong><br> SEチャットタブでは、AI回答タブと同様にAIとチャットができます。特定の用途や機能についてベテランSEと新人SE間での会話をシミュレートします。<br><br></li>
             <li><strong>履歴ボタン:</strong><br> 過去のチャット履歴を確認できます。モーダルウィンドウが表示され、以前のメッセージを閲覧できます。<br><br></li>
             <li><strong>ログアウトボタン:</strong><br> アプリからログアウトします。<br><br></li>
           </ul>
@@ -830,7 +829,7 @@ html, body {
 
 /* メッセージフォームのスタイル */
 .message-form {
-  padding: 5px;
+  padding: 10px;
   display: flex;
   width: 100%;
 }
@@ -1127,13 +1126,13 @@ html, body {
   background-color: #005bb5;
 }
 
-.chatgpt-area {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%; /* 必要に応じて調整 */
-}
+  .chatgpt-area {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* 変更: 中央から上部に変更 */
+    align-items: center;
+    height: 100%; /* 必要に応じて調整 */
+  }
 
 .chatgpt-note {
   margin-top: 15px;
