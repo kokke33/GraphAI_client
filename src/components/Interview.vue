@@ -367,24 +367,34 @@ export default {
         console.warn('addMessage called with non-string content:', msg);
         msg.content = '';
       }
-      // 「■システムプロンプト:」を空白に置換
-      msg.content = msg.content.replace('■システムプロンプト:', '');
+      // 「■システムプロンプト:」から始まる部分を削除して表示
+      let displayContent = msg.content;
+      let isSystemPrompt = false;
+      if (msg.content.startsWith('■システムプロンプト:')) {
+        displayContent = msg.content.replace('■システムプロンプト:', '');
+        isSystemPrompt = true; // フラグを立てる
+      } else if (msg.content.startsWith('■TESTTEST')) {
+        displayContent = msg.content.replace('■TESTTEST', '');
+        isSystemPrompt = true; // フラグを立てる
+      }
       const conversations = this[`conversations${id}`];
       const lastConv = conversations[conversations.length - 1];
       if (!lastConv || lastConv.type !== msg.type) {
-        conversations.push({ type: msg.type, messages: [msg.content] });
+        conversations.push({ type: msg.type, messages: [displayContent] });
       } else {
-        lastConv.messages.push(msg.content);
+        lastConv.messages.push(displayContent);
       }
       this.scrollToBottom(id);
-      // 履歴データに追加
-      this.historyData.push({
-        timestamp: new Date(),
-        type: msg.type,
-        content: msg.content,
-        tab: id === 1 ? 'create' : id === 2 ? 'answer' : id === 3 ? 'sechat' : 'chatgpt',
-      });
-      this.saveHistory();
+      // フラグが立っている場合は履歴に追加しない
+      if (!isSystemPrompt) {
+        this.historyData.push({
+          timestamp: new Date(),
+          type: msg.type,
+          content: displayContent,
+          tab: id === 1 ? 'create' : id === 2 ? 'answer' : id === 3 ? 'sechat' : 'chatgpt',
+        });
+        this.saveHistory();
+      }
     },
 
     /**
