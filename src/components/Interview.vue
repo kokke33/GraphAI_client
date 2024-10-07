@@ -166,7 +166,8 @@
 import io from 'socket.io-client';
 import { marked } from 'marked';
 import Convert from 'ansi-to-html';
-import { SERVER_URL_1, SERVER_URL_2, SERVER_URL_3 } from '../config';
+// import { SERVER_URL_1, SERVER_URL_2, SERVER_URL_3 } from '../config';
+import { SERVER_URLS, PATHS } from '../config';
 
 export default {
   data() {
@@ -264,30 +265,30 @@ export default {
      * @param {number} id - 1または2または3でサーバーURLを選択
      */
     initializeSocket(id) {
-      let url;
-      if (id === 1) {
-        url = SERVER_URL_1;
-      } else if (id === 2) {
-        url = SERVER_URL_2;
-      } else if (id === 3) {
-        url = SERVER_URL_3; // 新しいタブ用のサーバーURL
-      }
-      const socket = io(url, {
-        query: {
-          loginID: this.loginID, // ログインIDをクエリパラメータとして送信
-        },
-      });
-      this[`socket${id}`] = socket;
+    const randomServer = SERVER_URLS[Math.floor(Math.random() * SERVER_URLS.length)];
+    const path = PATHS[id];
+    const url = `${randomServer}${path}`;
 
-      socket.on('connect', () => {
-        this.addMessage(id, { type: 'system', content: 'サーバーに接続しました' });
-        socket.emit('start_interview');
-        this[`isDisconnected${id}`] = false; // 接続状態をリセット
-      });
+    // 接続するサーバーをコンソールに出力
+    console.log(`サーバー${id}に接続します: ${url}`);
+
+    const socket = io(url, {
+      query: {
+        loginID: this.loginID,
+      },
+    });
+    this[`socket${id}`] = socket;
+
+    // ソケットイベントの設定
+    socket.on('connect', () => {
+      this.addMessage(id, { type: 'system', content: `サーバーに接続しました: ${url}` });
+      socket.emit('start_interview');
+      this[`isDisconnected${id}`] = false; // 接続状態をリセット
+    });
 
       socket.on('disconnect', () => {
         this.addMessage(id, { type: 'system', content: 'サーバーから切断されました' });
-        this[`isDisconnected${id}`] = true; // 切断状態を設定
+        this[`isDisconnected${id}`] = true;
       });
 
       socket.on('connect_error', error => {
@@ -301,42 +302,40 @@ export default {
       });
     },
 
+
     /**
      * 再接続を試みる
      * @param {number} id - 1または2または3
      */
-    reconnect(id) {
-      return new Promise((resolve, reject) => {
-        // 既存のソケットがあれば切断
-        if (this[`socket${id}`]) {
-          this[`socket${id}`].off('connect');
-          this[`socket${id}`].off('connect_error');
-          this[`socket${id}`].disconnect();
-        }
+        reconnect(id) {
+        return new Promise((resolve, reject) => {
+          // 既存のソケットがあれば切断
+          if (this[`socket${id}`]) {
+            this[`socket${id}`].off('connect');
+            this[`socket${id}`].off('connect_error');
+            this[`socket${id}`].disconnect();
+          }
 
-        // ソケットを再初期化
-        let url;
-        if (id === 1) {
-          url = SERVER_URL_1;
-        } else if (id === 2) {
-          url = SERVER_URL_2;
-        } else if (id === 3) {
-          url = SERVER_URL_3;
-        }
-        const socket = io(url, {
-          query: {
-            loginID: this.loginID, // ログインIDを再送信
-          },
-        });
-        this[`socket${id}`] = socket;
+          const randomServer = SERVER_URLS[Math.floor(Math.random() * SERVER_URLS.length)];
+          const path = PATHS[id];
+          const url = `${randomServer}${path}`;
 
-        // イベントリスナーを再設定
-        socket.on('connect', () => {
-          this.addMessage(id, { type: 'system', content: 'サーバーに再接続しました' });
-          socket.emit('start_interview');
-          this[`isDisconnected${id}`] = false;
-          resolve();
-        });
+          // 再接続するサーバーをコンソールに出力
+          console.log(`サーバー${id}に再接続します: ${url}`);
+
+          const socket = io(url, {
+            query: {
+              loginID: this.loginID,
+            },
+          });
+          this[`socket${id}`] = socket;
+
+          socket.on('connect', () => {
+            this.addMessage(id, { type: 'system', content: `サーバーに再接続しました: ${url}` });
+            socket.emit('start_interview');
+            this[`isDisconnected${id}`] = false;
+            resolve();
+          });
 
         socket.on('connect_error', error => {
           console.error(`サーバー${id}への再接続エラー:`, error);
