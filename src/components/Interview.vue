@@ -372,8 +372,8 @@ export default {
       if (msg.content.startsWith('■システムプロンプト:')) {
         displayContent = msg.content.replace('■システムプロンプト:', '');
         isSystemPrompt = true; // フラグを立てる
-      } else if (msg.content.startsWith('■TESTTEST')) {
-        displayContent = msg.content.replace('■TESTTEST', '');
+      } else if (msg.content.startsWith('サーバーに接続しました')) {
+        displayContent = msg.content.replace(/: https:.*$/g, '');
         isSystemPrompt = true; // フラグを立てる
       }
       const conversations = this[`conversations${id}`];

@@ -112,3 +112,8 @@ Project Console: https://console.firebase.google.com/project/graphai2/overview
 Hosting URL: https://graphai2.web.app
 ~/GraphAIclient$ 
 ```
+
+## サーバー起動
+```
+npm run build
+```
